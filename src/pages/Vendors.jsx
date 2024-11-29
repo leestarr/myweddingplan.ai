@@ -1,19 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { Dialog, Transition } from '@headlessui/react';
 import {
-  StarIcon,
-  PlusIcon,
-  FunnelIcon,
   MagnifyingGlassIcon,
-  CalendarIcon,
-  CurrencyDollarIcon,
-  ChatBubbleLeftIcon,
-  DocumentCheckIcon,
+  PlusIcon,
+  StarIcon,
+  XMarkIcon,
+  Squares2X2Icon,
+  ListBulletIcon,
+  AdjustmentsHorizontalIcon,
 } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import VendorModal from '../components/VendorModal';
 import BookingModal from '../components/BookingModal';
 import VendorReviewModal from '../components/VendorReviewModal';
 import VendorFilters from '../components/VendorFilters';
+import VendorComparison from '../components/VendorComparison';
+import useWeddingDate from '../hooks/useWeddingDate';
 
 // Initial vendor categories
 const initialCategories = [
@@ -52,7 +54,82 @@ const initialVendors = [
     services: ['Ceremony Space', 'Reception Hall', 'Bridal Suite', 'Parking'],
     appointments: [],
   },
-  // Add more sample vendors as needed
+  {
+    id: 2,
+    name: 'Floral Fantasy',
+    category: 'Florist',
+    rating: 4.9,
+    reviews: 38,
+    priceRange: '$$',
+    description: 'Exquisite floral arrangements for your special day',
+    image: 'https://source.unsplash.com/random/800x600/?wedding,flowers',
+    contact: {
+      phone: '(555) 234-5678',
+      email: 'info@floralfantasy.com',
+      website: 'www.floralfantasy.com',
+    },
+    availability: true,
+    location: 'Downtown Wedding City',
+    services: ['Bouquets', 'Centerpieces', 'Arch Decorations', 'Setup'],
+    appointments: [],
+  },
+  {
+    id: 3,
+    name: 'Delightful Catering',
+    category: 'Catering',
+    rating: 4.7,
+    reviews: 52,
+    priceRange: '$$',
+    description: 'Gourmet catering for weddings and special events',
+    image: 'https://source.unsplash.com/random/800x600/?wedding,catering',
+    contact: {
+      phone: '(555) 345-6789',
+      email: 'info@delightfulcatering.com',
+      website: 'www.delightfulcatering.com',
+    },
+    availability: false,
+    location: 'Downtown Wedding City',
+    services: ['Full Service Catering', 'Buffet', 'Plated Service', 'Bar Service'],
+    appointments: [],
+  },
+  {
+    id: 4,
+    name: 'Sweet Serenade',
+    category: 'Music & Entertainment',
+    rating: 4.8,
+    reviews: 28,
+    priceRange: '$$',
+    description: 'Live music and entertainment for your wedding day',
+    image: 'https://source.unsplash.com/random/800x600/?wedding,music',
+    contact: {
+      phone: '(555) 456-7890',
+      email: 'info@sweetserenade.com',
+      website: 'www.sweetserenade.com',
+    },
+    availability: true,
+    location: 'Downtown Wedding City',
+    services: ['Live Music', 'DJ Services', 'Emcee'],
+    appointments: [],
+  },
+  {
+    id: 5,
+    name: 'Dreamy Decor',
+    category: 'Decor & Rentals',
+    rating: 4.9,
+    reviews: 22,
+    priceRange: '$$',
+    description: 'Wedding decor and rental services for your special day',
+    image: 'https://source.unsplash.com/random/800x600/?wedding,decor',
+    contact: {
+      phone: '(555) 567-8901',
+      email: 'info@dreamydecor.com',
+      website: 'www.dreamydecor.com',
+    },
+    availability: true,
+    location: 'Downtown Wedding City',
+    services: ['Decor Rentals', 'Lighting', 'Furniture'],
+    appointments: [],
+  },
 ];
 
 export default function Vendors() {
@@ -66,9 +143,8 @@ export default function Vendors() {
   const [searchQuery, setSearchQuery] = useState('');
   const [vendorModalOpen, setVendorModalOpen] = useState(false);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
-  const [selectedVendor, setSelectedVendor] = useState(null);
   const [reviewModalOpen, setReviewModalOpen] = useState(false);
-  const [selectedVendorForReview, setSelectedVendorForReview] = useState(null);
+  const [selectedVendor, setSelectedVendor] = useState(null);
   const [view, setView] = useState('grid'); // 'grid' or 'list'
   const [sortBy, setSortBy] = useState('rating'); // 'rating', 'reviews', 'price'
   const [filterPrice, setFilterPrice] = useState('All');
@@ -82,6 +158,13 @@ export default function Vendors() {
     services: [],
     priceRanges: [],
   });
+
+  const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+
+  const [selectedVendorsForComparison, setSelectedVendorsForComparison] = useState([]);
+  const [isComparisonViewOpen, setIsComparisonViewOpen] = useState(false);
+
+  const weddingDate = useWeddingDate(); // You'll need to implement this hook
 
   // Save vendors to localStorage whenever they change
   useEffect(() => {
@@ -182,7 +265,7 @@ export default function Vendors() {
     }
   };
 
-  const handleRemoveFromComparison = (vendorId) => {
+  const handleRemoveFromComparisonList = (vendorId) => {
     setComparisonList(comparisonList.filter(v => v.id !== vendorId));
   };
 
@@ -203,7 +286,7 @@ export default function Vendors() {
   };
 
   const handleOpenReview = (vendor) => {
-    setSelectedVendorForReview(vendor);
+    setSelectedVendor(vendor);
     setReviewModalOpen(true);
   };
 
@@ -226,46 +309,85 @@ export default function Vendors() {
     return totalRating / (numReviews + 1);
   };
 
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold text-gray-900">Wedding Vendors</h1>
-          <p className="mt-1 text-sm text-gray-500">
-            Find and manage your wedding vendors
-          </p>
-        </div>
-        <button
-          onClick={handleAddVendor}
-          className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
-        >
-          <PlusIcon className="h-5 w-5 mr-2" />
-          Add Vendor
-        </button>
-      </div>
+  const handleVendorClick = (vendor) => {
+    handleEditVendor(vendor);
+  };
 
-      {/* Search and Filters */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* Filters Sidebar */}
-        <div className="lg:col-span-1">
-          <div className="bg-white rounded-lg shadow-sm p-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">Filters</h3>
-            <VendorFilters
-              filters={filters}
-              onFilterChange={setFilters}
-              selectedCategory={selectedCategory}
-            />
+  const handleCompareVendor = (vendor) => {
+    if (selectedVendorsForComparison.find(v => v.id === vendor.id)) {
+      setSelectedVendorsForComparison(selectedVendorsForComparison.filter(v => v.id !== vendor.id));
+    } else if (selectedVendorsForComparison.length < 3) {
+      setSelectedVendorsForComparison([...selectedVendorsForComparison, vendor]);
+    }
+  };
+
+  const handleCloseComparison = () => {
+    setIsComparisonViewOpen(false);
+    setSelectedVendorsForComparison([]);
+  };
+
+  const handleRemoveFromComparison = (vendorId) => {
+    setSelectedVendorsForComparison(selectedVendorsForComparison.filter(v => v.id !== vendorId));
+    if (selectedVendorsForComparison.length <= 1) {
+      setIsComparisonViewOpen(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white shadow">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-semibold text-gray-900">Wedding Vendors</h1>
+              <p className="mt-1 text-sm text-gray-500">
+                Find and manage your perfect wedding vendors
+              </p>
+            </div>
+            <button
+              onClick={handleAddVendor}
+              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
+            >
+              <PlusIcon className="h-5 w-5 mr-2" />
+              Add Vendor
+            </button>
           </div>
         </div>
+      </div>
 
-        {/* Main Content */}
-        <div className="lg:col-span-3">
-          {/* Search Bar and View Controls */}
-          <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-            <div className="flex flex-col space-y-4 sm:flex-row sm:space-y-0 sm:space-x-4">
-              <div className="flex-1 min-w-0">
-                <div className="relative rounded-md shadow-sm">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Filters */}
+          <div className="hidden lg:block">
+            <div className="bg-white rounded-lg shadow p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-4">Filters</h2>
+              <VendorFilters
+                filters={filters}
+                onFilterChange={setFilters}
+                selectedCategory={selectedCategory}
+                weddingDate={weddingDate}
+              />
+            </div>
+          </div>
+
+          {/* Main content */}
+          <div className="lg:col-span-3 space-y-4">
+            {/* Search and Controls */}
+            <div className="flex flex-col lg:flex-row lg:items-center gap-3">
+              {/* Mobile filter button */}
+              <button
+                type="button"
+                className="lg:hidden inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                onClick={() => setIsMobileFiltersOpen(true)}
+              >
+                <AdjustmentsHorizontalIcon className="h-5 w-5 mr-2" />
+                Filters
+              </button>
+
+              {/* Search */}
+              <div className="flex-1">
+                <div className="relative">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                     <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
                   </div>
@@ -273,17 +395,18 @@ export default function Vendors() {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                    className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 text-base"
                     placeholder="Search vendors..."
                   />
                 </div>
               </div>
 
-              <div className="flex space-x-4">
+              {/* Controls */}
+              <div className="flex items-center gap-3">
                 <select
                   value={selectedCategory}
                   onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="All">All Categories</option>
                   {categories.map(category => (
@@ -294,7 +417,7 @@ export default function Vendors() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                  className="rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:outline-none focus:ring-primary-500 focus:border-primary-500"
                 >
                   <option value="rating">Sort by Rating</option>
                   <option value="reviews">Sort by Reviews</option>
@@ -303,100 +426,198 @@ export default function Vendors() {
 
                 <button
                   onClick={() => setView(view === 'grid' ? 'list' : 'grid')}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md text-base font-medium text-gray-700 bg-white hover:bg-gray-50"
                 >
-                  {view === 'grid' ? 'List View' : 'Grid View'}
+                  {view === 'grid' ? (
+                    <>
+                      <ListBulletIcon className="h-5 w-5 mr-2" />
+                      List
+                    </>
+                  ) : (
+                    <>
+                      <Squares2X2Icon className="h-5 w-5 mr-2" />
+                      Grid
+                    </>
+                  )}
                 </button>
               </div>
             </div>
-          </div>
 
-          {/* Results Count */}
-          <div className="mb-4">
-            <p className="text-sm text-gray-500">
-              Showing {filteredVendors.length} {filteredVendors.length === 1 ? 'vendor' : 'vendors'}
-            </p>
-          </div>
+            {/* Results count */}
+            <div className="text-base text-gray-500">
+              Showing <span className="font-medium text-gray-900">{filteredVendors.length}</span>{' '}
+              {filteredVendors.length === 1 ? 'vendor' : 'vendors'}
+            </div>
 
-          {/* Vendors Grid/List */}
-          <div className={`grid ${view === 'grid' ? 'grid-cols-1 sm:grid-cols-2 gap-6' : 'grid-cols-1 gap-4'}`}>
-            {filteredVendors.map(vendor => (
-              <div
-                key={vendor.id}
-                className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow duration-200"
-              >
-                <div className="relative h-48">
-                  <img
-                    src={vendor.image}
-                    alt={vendor.name}
-                    className="w-full h-full object-cover"
+            {/* Grid container */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 px-4">
+              {/* First Card */}
+              <div className="w-full h-[260px] bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-4 relative flex flex-col justify-between">
+                {/* Checkbox */}
+                <div className="absolute top-2 right-2 z-10">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                   />
-                  <div className="absolute top-2 right-2 space-x-2">
-                    <button
-                      onClick={() => handleAddToComparison(vendor)}
-                      disabled={comparisonList.length >= 3 || comparisonList.find(v => v.id === vendor.id)}
-                      className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
-                    >
-                      Compare
-                    </button>
+                </div>
+
+                {/* Vendor Info */}
+                <div className="space-y-2">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Elegant Events</h3>
+                    <p className="text-sm text-gray-500">Venue</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="flex items-center">
+                      <StarIcon className="h-5 w-5 text-yellow-400" />
+                      <span className="ml-1 text-base font-medium">4.8</span>
+                    </div>
+                    <span className="ml-1 text-sm text-gray-500">(45)</span>
+                  </div>
+
+                  <div>
+                    <span className="text-base font-medium">$$$</span>
+                  </div>
+
+                  <div>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                      Available
+                    </span>
                   </div>
                 </div>
 
-                <div className="p-4">
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">{vendor.name}</h3>
-                      <p className="text-sm text-gray-500">{vendor.category}</p>
-                    </div>
-                    <div className="flex items-center">
-                      <StarIconSolid className="h-5 w-5 text-yellow-400" />
-                      <span className="ml-1 text-sm text-gray-600">{vendor.rating}</span>
-                      <span className="ml-1 text-sm text-gray-500">({vendor.reviews})</span>
-                    </div>
-                  </div>
-
-                  <p className="mt-2 text-sm text-gray-500 line-clamp-2">{vendor.description}</p>
-
-                  <div className="mt-4 flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <span className="text-sm font-medium text-gray-900">{vendor.priceRange}</span>
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        vendor.availability ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                      }`}>
-                        {vendor.availability ? 'Available' : 'Booked'}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex space-x-2">
-                    <button
-                      onClick={() => handleEditVendor(vendor)}
-                      className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                      View Details
-                    </button>
-                    <button
-                      onClick={() => handleBookAppointment(vendor)}
-                      className="flex-1 inline-flex justify-center items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
-                    >
-                      Book Now
-                    </button>
-                    <button
-                      onClick={() => handleOpenReview(vendor)}
-                      className="inline-flex justify-center items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-                    >
-                      <StarIcon className="h-5 w-5 mr-1 text-yellow-400" />
-                      Review
-                    </button>
-                  </div>
+                {/* Buttons */}
+                <div className="flex flex-col gap-2 mt-auto">
+                  <button className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 text-sm font-medium">
+                    View Details
+                  </button>
+                  <button className="w-full px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 text-sm font-medium">
+                    Book Now
+                  </button>
                 </div>
               </div>
-            ))}
+
+              {/* Second Card */}
+              <div className="w-full h-[260px] bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-4 relative flex flex-col justify-between">
+                {/* Checkbox */}
+                <div className="absolute top-2 right-2 z-10">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {/* Vendor Info */}
+                <div className="space-y-2">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Floral Fantasy</h3>
+                    <p className="text-sm text-gray-500">Florist</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="flex items-center">
+                      <StarIcon className="h-5 w-5 text-yellow-400" />
+                      <span className="ml-1 text-base font-medium">4.9</span>
+                    </div>
+                    <span className="ml-1 text-sm text-gray-500">(38)</span>
+                  </div>
+
+                  <div>
+                    <span className="text-base font-medium">$$</span>
+                  </div>
+
+                  <div>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">
+                      Available
+                    </span>
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex flex-col gap-2 mt-auto">
+                  <button className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 text-sm font-medium">
+                    View Details
+                  </button>
+                  <button className="w-full px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 text-sm font-medium">
+                    Book Now
+                  </button>
+                </div>
+              </div>
+
+              {/* Third Card */}
+              <div className="w-full h-[260px] bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow duration-200 p-4 relative flex flex-col justify-between">
+                {/* Checkbox */}
+                <div className="absolute top-2 right-2 z-10">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                </div>
+
+                {/* Vendor Info */}
+                <div className="space-y-2">
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900">Delightful Catering</h3>
+                    <p className="text-sm text-gray-500">Catering</p>
+                  </div>
+
+                  <div className="flex items-center">
+                    <div className="flex items-center">
+                      <StarIcon className="h-5 w-5 text-yellow-400" />
+                      <span className="ml-1 text-base font-medium">4.7</span>
+                    </div>
+                    <span className="ml-1 text-sm text-gray-500">(52)</span>
+                  </div>
+
+                  <div>
+                    <span className="text-base font-medium">$$</span>
+                  </div>
+
+                  <div>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                      Unavailable
+                    </span>
+                  </div>
+                </div>
+
+                {/* Buttons */}
+                <div className="flex flex-col gap-2 mt-auto">
+                  <button className="w-full px-3 py-1.5 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 text-sm font-medium">
+                    View Details
+                  </button>
+                  <button className="w-full px-3 py-1.5 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 text-sm font-medium">
+                    Book Now
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Vendor Modal */}
+      {/* Comparison floating button */}
+      {selectedVendorsForComparison.length > 0 && !isComparisonViewOpen && (
+        <div className="fixed bottom-4 right-4">
+          <button
+            onClick={() => setIsComparisonViewOpen(true)}
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg shadow-lg hover:bg-indigo-700"
+          >
+            Compare {selectedVendorsForComparison.length} Vendors
+          </button>
+        </div>
+      )}
+
+      {/* Vendor comparison component */}
+      {isComparisonViewOpen && (
+        <VendorComparison
+          vendors={selectedVendorsForComparison}
+          onClose={handleCloseComparison}
+          onRemoveVendor={handleRemoveFromComparison}
+        />
+      )}
+
+      {/* Modals */}
       <VendorModal
         isOpen={vendorModalOpen}
         onClose={() => setVendorModalOpen(false)}
@@ -404,21 +625,17 @@ export default function Vendors() {
         vendor={selectedVendor}
         categories={categories}
       />
-
-      {/* Booking Modal */}
       <BookingModal
         isOpen={bookingModalOpen}
         onClose={() => setBookingModalOpen(false)}
         onSave={handleSaveAppointment}
         vendor={selectedVendor}
       />
-
-      {/* Review Modal */}
       <VendorReviewModal
         isOpen={reviewModalOpen}
         onClose={() => setReviewModalOpen(false)}
         onSubmit={handleSubmitReview}
-        vendor={selectedVendorForReview}
+        vendor={selectedVendor}
       />
     </div>
   );
