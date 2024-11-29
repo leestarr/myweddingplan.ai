@@ -3,6 +3,13 @@ import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
 export default function TaskModal({ isOpen, onClose, onSave, task, categories, priorities }) {
+  const STATUS_OPTIONS = [
+    { id: 'todo', title: 'To Do' },
+    { id: 'inProgress', title: 'In Progress' },
+    { id: 'review', title: 'Review' },
+    { id: 'completed', title: 'Completed' }
+  ];
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -12,6 +19,7 @@ export default function TaskModal({ isOpen, onClose, onSave, task, categories, p
     assignedTo: '',
     budget: '',
     notes: '',
+    status: 'todo'
   });
 
   useEffect(() => {
@@ -27,6 +35,7 @@ export default function TaskModal({ isOpen, onClose, onSave, task, categories, p
         assignedTo: '',
         budget: '',
         notes: '',
+        status: 'todo'
       });
     }
   }, [task, categories, priorities]);
@@ -208,6 +217,25 @@ export default function TaskModal({ isOpen, onClose, onSave, task, categories, p
                             placeholder="0.00"
                           />
                         </div>
+                      </div>
+
+                      <div>
+                        <label htmlFor="status" className="block text-sm font-medium text-gray-700">
+                          Status
+                        </label>
+                        <select
+                          id="status"
+                          name="status"
+                          value={formData.status}
+                          onChange={handleChange}
+                          className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-primary-500 focus:border-primary-500 sm:text-sm rounded-md"
+                        >
+                          {STATUS_OPTIONS.map((status) => (
+                            <option key={status.id} value={status.id}>
+                              {status.title}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
                       <div>

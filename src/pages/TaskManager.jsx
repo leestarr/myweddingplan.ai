@@ -140,7 +140,6 @@ export default function TaskManager() {
       const newTask = {
         ...taskData,
         id: Math.max(0, ...tasks.map(t => t.id)) + 1,
-        status: 'todo'
       };
       setTasks(prevTasks => [...prevTasks, newTask]);
     }
