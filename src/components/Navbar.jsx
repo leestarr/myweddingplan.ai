@@ -9,6 +9,7 @@ import {
   ChatBubbleLeftIcon,
   Cog6ToothIcon,
   BanknotesIcon,
+  DocumentIcon,
 } from '@heroicons/react/24/outline';
 
 const mainNavigation = [
@@ -16,6 +17,7 @@ const mainNavigation = [
   { name: 'Guest List', href: '/guests', icon: UserGroupIcon },
   { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
   { name: 'AI Chat', href: '/chat', icon: ChatBubbleLeftIcon },
+  { name: 'Documents', href: '/documents', icon: DocumentIcon },
 ];
 
 const projectNavigation = [
