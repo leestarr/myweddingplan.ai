@@ -9,11 +9,13 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.0.18",
     "@supabase/supabase-js": "^2.39.0",
     "chart.js": "^4.4.0",
     "clsx": "^2.0.0",
     "react": "^18.2.0",
+    "react-beautiful-dnd": "^13.1.1",
     "react-chartjs-2": "^5.2.0",
     "react-dom": "^18.2.0",
     "react-query": "^3.39.3",

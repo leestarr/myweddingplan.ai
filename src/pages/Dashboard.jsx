@@ -49,6 +49,7 @@ const tasks = [
 export default function Dashboard() {
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
@@ -57,138 +58,140 @@ export default function Dashboard() {
         <button className="btn-primary">Add New Task</button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Main Content - Messages */}
-        <div className="lg:col-span-2 space-y-6">
-          <div className="bg-white rounded-lg shadow-sm">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium">Recent Messages</h2>
-            </div>
-            <div className="divide-y divide-gray-200">
-              {messages.map((message) => (
-                <div key={message.id} className="p-4 hover:bg-gray-50">
-                  <div className="flex items-start space-x-4">
-                    <img
-                      src={`https://ui-avatars.com/api/?name=${message.author}`}
-                      alt=""
-                      className="h-10 w-10 rounded-full"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-sm font-medium text-gray-900">{message.author}</h3>
-                          <p className="text-xs text-gray-500">{message.role}</p>
-                        </div>
-                        <span className="text-xs text-gray-500">{message.time}</span>
-                      </div>
-                      <p className="mt-1 text-sm text-gray-900">{message.content}</p>
-                      {message.attachment && (
-                        <div className="mt-2 flex items-center space-x-2 text-sm text-gray-500">
-                          <PaperClipIcon className="h-4 w-4" />
-                          <span>{message.attachment.name}</span>
-                          <span>({message.attachment.size})</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* Quick Stats Row */}
+      <div className="grid grid-cols-4 gap-4">
+        <div className="bg-white rounded-lg shadow-sm p-4">
+          <div className="text-2xl font-bold text-primary-600">150</div>
+          <div className="text-sm text-gray-500">Total Guests</div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4">
+          <div className="text-2xl font-bold text-primary-600">75%</div>
+          <div className="text-sm text-gray-500">Tasks Complete</div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4">
+          <div className="text-2xl font-bold text-primary-600">$25k</div>
+          <div className="text-sm text-gray-500">Budget</div>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm p-4">
+          <div className="text-2xl font-bold text-primary-600">180</div>
+          <div className="text-sm text-gray-500">Days Left</div>
+        </div>
+      </div>
 
-          {/* Tasks */}
-          <div className="bg-white rounded-lg shadow-sm">
-            <div className="p-4 border-b border-gray-200">
-              <h2 className="text-lg font-medium">Outstanding Tasks</h2>
-            </div>
-            <div className="divide-y divide-gray-200">
-              {tasks.map((task) => (
-                <div key={task.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 text-primary-600 rounded border-gray-300"
-                    />
-                    <span className="text-sm font-medium text-gray-900">{task.name}</span>
-                  </div>
-                  <div className="flex items-center space-x-4">
-                    <span className={`px-2 py-1 text-xs rounded-full ${
-                      task.priority === 'High'
-                        ? 'bg-red-100 text-red-800'
-                        : task.priority === 'Medium'
-                        ? 'bg-yellow-100 text-yellow-800'
-                        : 'bg-green-100 text-green-800'
-                    }`}>
-                      {task.priority}
-                    </span>
-                    <span className="text-sm text-gray-500">{task.dueDate}</span>
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* Recent Messages */}
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium">Recent Messages</h2>
+          </div>
+          <div className="divide-y divide-gray-200 max-h-[400px] overflow-y-auto">
+            {messages.map((message) => (
+              <div key={message.id} className="p-4 hover:bg-gray-50">
+                <div className="flex items-start space-x-4">
+                  <img
+                    src={`https://ui-avatars.com/api/?name=${message.author}`}
+                    alt=""
+                    className="h-10 w-10 rounded-full"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="text-sm font-medium text-gray-900">{message.author}</h3>
+                        <p className="text-xs text-gray-500">{message.role}</p>
+                      </div>
+                      <span className="text-xs text-gray-500">{message.time}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-gray-900">{message.content}</p>
+                    {message.attachment && (
+                      <div className="mt-2 flex items-center space-x-2 text-sm text-gray-500">
+                        <PaperClipIcon className="h-4 w-4" />
+                        <span>{message.attachment.name}</span>
+                        <span>({message.attachment.size})</span>
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div className="space-y-6">
-          {/* Quick Stats */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-medium mb-4">Quick Stats</h2>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-primary-600">150</div>
-                <div className="text-sm text-gray-500">Total Guests</div>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-primary-600">75%</div>
-                <div className="text-sm text-gray-500">Tasks Complete</div>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-primary-600">$25k</div>
-                <div className="text-sm text-gray-500">Budget</div>
-              </div>
-              <div className="text-center p-4 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-primary-600">180</div>
-                <div className="text-sm text-gray-500">Days Left</div>
-              </div>
-            </div>
+        {/* Tasks */}
+        <div className="bg-white rounded-lg shadow-sm">
+          <div className="p-4 border-b border-gray-200">
+            <h2 className="text-lg font-medium">Outstanding Tasks</h2>
           </div>
+          <div className="divide-y divide-gray-200 max-h-[400px] overflow-y-auto">
+            {tasks.map((task) => (
+              <div key={task.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
+                <div className="flex items-center space-x-3">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 text-primary-600 rounded border-gray-300"
+                  />
+                  <span className="text-sm font-medium text-gray-900">{task.name}</span>
+                </div>
+                <div className="flex items-center space-x-4">
+                  <span className={`px-2 py-1 text-xs rounded-full ${
+                    task.priority === 'High'
+                      ? 'bg-red-100 text-red-800'
+                      : task.priority === 'Medium'
+                      ? 'bg-yellow-100 text-yellow-800'
+                      : 'bg-green-100 text-green-800'
+                  }`}>
+                    {task.priority}
+                  </span>
+                  <span className="text-sm text-gray-500">{task.dueDate}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
 
-          {/* Budget Overview */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-medium mb-4">Budget Overview</h2>
-            <div className="h-64">
-              <Bar
-                data={{
-                  labels: ['Venue', 'Catering', 'Decor', 'Music', 'Photo'],
-                  datasets: [
-                    {
-                      label: 'Spent',
-                      data: [8000, 5000, 3000, 2000, 1500],
-                      backgroundColor: 'rgba(59, 130, 246, 0.5)',
-                    },
-                    {
-                      label: 'Budget',
-                      data: [10000, 6000, 4000, 2500, 2000],
-                      backgroundColor: 'rgba(147, 197, 253, 0.5)',
-                    },
-                  ],
-                }}
-                options={{
-                  responsive: true,
-                  plugins: {
-                    legend: {
-                      position: 'top',
-                    },
+        {/* Budget Overview */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-lg font-medium mb-4">Budget Overview</h2>
+          <div className="h-[300px]">
+            <Bar
+              data={{
+                labels: ['Venue', 'Catering', 'Decor', 'Music', 'Photo'],
+                datasets: [
+                  {
+                    label: 'Spent',
+                    data: [8000, 5000, 3000, 2000, 1500],
+                    backgroundColor: 'rgba(59, 130, 246, 0.5)',
                   },
-                  scales: {
-                    y: {
-                      beginAtZero: true,
-                    },
+                  {
+                    label: 'Budget',
+                    data: [10000, 6000, 4000, 2500, 2000],
+                    backgroundColor: 'rgba(147, 197, 253, 0.5)',
                   },
-                }}
-              />
-            </div>
+                ],
+              }}
+              options={{
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                  legend: {
+                    position: 'top',
+                  },
+                },
+                scales: {
+                  y: {
+                    beginAtZero: true,
+                  },
+                },
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Timeline or Calendar Placeholder */}
+        <div className="bg-white rounded-lg shadow-sm p-6">
+          <h2 className="text-lg font-medium mb-4">Upcoming Events</h2>
+          <div className="h-[300px] flex items-center justify-center text-gray-500">
+            <p>Calendar integration coming soon</p>
           </div>
         </div>
       </div>
