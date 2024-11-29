@@ -4,6 +4,7 @@ import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import GuestList from './pages/GuestList';
 import TaskManager from './pages/TaskManager';
+import Budget from './pages/Budget';
 
 const queryClient = new QueryClient();
 
@@ -16,6 +17,7 @@ function App() {
             <Route index element={<Dashboard />} />
             <Route path="guests" element={<GuestList />} />
             <Route path="tasks" element={<TaskManager />} />
+            <Route path="budget" element={<Budget />} />
           </Route>
         </Routes>
       </Router>
