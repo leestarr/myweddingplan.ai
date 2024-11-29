@@ -84,11 +84,22 @@ export default function TaskManager() {
   const handleDragEnd = (result) => {
     if (!result.destination) return;
 
-    const updatedTasks = Array.from(tasks);
-    const [movedTask] = updatedTasks.splice(result.source.index, 1);
-    movedTask.status = result.destination.droppableId;
-    updatedTasks.splice(result.destination.index, 0, movedTask);
-    setTasks(updatedTasks);
+    const { source, destination } = result;
+    const allTasks = [...tasks];
+    const sourceIndex = allTasks.findIndex(t => t.id.toString() === result.draggableId);
+    const taskToMove = allTasks[sourceIndex];
+
+    // Update the task's status
+    taskToMove.status = destination.droppableId;
+
+    // Remove from old position and insert at new position
+    allTasks.splice(sourceIndex, 1);
+    const destinationTasks = allTasks.filter(t => t.status === destination.droppableId);
+    const insertIndex = Math.min(destination.index, destinationTasks.length);
+    const insertPosition = allTasks.findIndex(t => t.status === destination.droppableId) + insertIndex;
+    allTasks.splice(insertPosition >= 0 ? insertPosition : 0, 0, taskToMove);
+
+    setTasks(allTasks);
   };
 
   const handleAddTask = () => {
@@ -240,11 +251,13 @@ export default function TaskManager() {
                   </h3>
                 </div>
                 <Droppable droppableId={column.id}>
-                  {(provided) => (
+                  {(provided, snapshot) => (
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className="p-4 min-h-[200px]"
+                      className={`p-4 min-h-[200px] ${
+                        snapshot.isDraggingOver ? 'bg-gray-50' : ''
+                      }`}
                     >
                       {getTasksByStatus(column.id).map((task, index) => (
                         <Draggable
@@ -252,12 +265,14 @@ export default function TaskManager() {
                           draggableId={task.id.toString()}
                           index={index}
                         >
-                          {(provided) => (
+                          {(provided, snapshot) => (
                             <div
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-3 hover:shadow-md transition-all duration-200"
+                              className={`bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-3 hover:shadow-md transition-all duration-200 ${
+                                snapshot.isDragging ? 'shadow-lg ring-2 ring-primary-500 ring-opacity-50' : ''
+                              }`}
                             >
                               <div className="flex items-start justify-between space-x-4">
                                 <div className="flex-1 min-w-0">
