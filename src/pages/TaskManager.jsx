@@ -361,10 +361,10 @@ export default function TaskManager() {
                                     e.stopPropagation();
                                     handleEditTask(task);
                                   }}
-                                  className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-500 rounded-full hover:bg-gray-50"
+                                  className="flex-shrink-0 p-2.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                                 >
                                   <span className="sr-only">Edit</span>
-                                  <PencilIcon className="h-4 w-4" />
+                                  <PencilIcon className="h-5 w-5" />
                                 </button>
                               </div>
                               {provided.placeholder}
