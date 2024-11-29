@@ -2,45 +2,44 @@ import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
-const categories = [
-  'Venue',
-  'Catering',
-  'Decor',
-  'Photography',
-  'Entertainment',
-  'Attire',
-  'Transportation',
-  'Other'
-];
-
-export default function ExpenseModal({ isOpen, onClose, onSave, expense = null }) {
+export default function ExpenseModal({
+  isOpen,
+  onClose,
+  onSave,
+  expense = null,
+  initialCategory = null,
+  categories = []
+}) {
   const [formData, setFormData] = useState({
-    date: new Date().toISOString().split('T')[0],
-    category: categories[0],
+    expenseName: '',
+    category: initialCategory || '',
     description: '',
     amount: '',
-    notes: ''
+    date: new Date().toISOString().split('T')[0],
+    vendor: ''
   });
 
   useEffect(() => {
     if (expense) {
       setFormData({
-        date: new Date(expense.date).toISOString().split('T')[0],
-        category: expense.category,
-        description: expense.description,
-        amount: expense.amount.toString(),
-        notes: expense.notes || ''
+        expenseName: expense.expenseName || '',
+        category: expense.category || '',
+        description: expense.description || '',
+        amount: expense.amount?.toString() || '',
+        date: expense.date || new Date().toISOString().split('T')[0],
+        vendor: expense.vendor || ''
       });
     } else {
       setFormData({
-        date: new Date().toISOString().split('T')[0],
-        category: categories[0],
+        expenseName: '',
+        category: initialCategory || '',
         description: '',
         amount: '',
-        notes: ''
+        date: new Date().toISOString().split('T')[0],
+        vendor: ''
       });
     }
-  }, [expense]);
+  }, [expense, initialCategory]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -54,14 +53,22 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense = null }
     e.preventDefault();
     onSave({
       ...formData,
-      amount: parseFloat(formData.amount),
-      date: new Date(formData.date).toISOString()
+      amount: parseFloat(formData.amount)
     });
+    setFormData({
+      expenseName: '',
+      category: initialCategory || '',
+      description: '',
+      amount: '',
+      date: new Date().toISOString().split('T')[0],
+      vendor: ''
+    });
+    onClose();
   };
 
   return (
     <Transition.Root show={isOpen} as={Fragment}>
-      <Dialog as="div" className="relative z-50" onClose={onClose}>
+      <Dialog as="div" className="relative z-10" onClose={onClose}>
         <Transition.Child
           as={Fragment}
           enter="ease-out duration-300"
@@ -75,7 +82,7 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense = null }
         </Transition.Child>
 
         <div className="fixed inset-0 z-10 overflow-y-auto">
-          <div className="flex min-h-full items-center justify-center p-4 text-center sm:p-0">
+          <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
             <Transition.Child
               as={Fragment}
               enter="ease-out duration-300"
@@ -85,115 +92,132 @@ export default function ExpenseModal({ isOpen, onClose, onSave, expense = null }
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
-                <div className="absolute right-0 top-0 pr-4 pt-4">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6">
+                <div className="absolute right-0 top-0 hidden pr-4 pt-4 sm:block">
                   <button
                     type="button"
                     className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
                     onClick={onClose}
                   >
                     <span className="sr-only">Close</span>
-                    <XMarkIcon className="h-6 w-6" />
+                    <XMarkIcon className="h-6 w-6" aria-hidden="true" />
                   </button>
                 </div>
 
                 <div className="sm:flex sm:items-start">
-                  <div className="mt-3 w-full text-center sm:mt-0 sm:text-left">
-                    <Dialog.Title as="h3" className="text-xl font-semibold leading-6 text-gray-900 mb-6">
+                  <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                    <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900">
                       {expense ? 'Edit Expense' : 'Add Expense'}
                     </Dialog.Title>
-                    <form onSubmit={handleSubmit} className="space-y-6">
-                      {/* Date */}
-                      <div>
-                        <label htmlFor="date" className="block text-sm font-medium text-gray-700">
-                          Date
-                        </label>
-                        <input
-                          type="date"
-                          name="date"
-                          id="date"
-                          required
-                          value={formData.date}
-                          onChange={handleChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        />
+                    <form onSubmit={handleSubmit} className="mt-4">
+                      <div className="space-y-6">
+                        <div className="space-y-1">
+                          <label htmlFor="expenseName" className="block text-sm font-medium text-gray-700">
+                            Expense
+                          </label>
+                          <input
+                            type="text"
+                            id="expenseName"
+                            name="expenseName"
+                            value={formData.expenseName}
+                            onChange={handleChange}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="category" className="block text-sm font-medium text-gray-700">
+                            Category
+                          </label>
+                          <select
+                            id="category"
+                            name="category"
+                            value={formData.category}
+                            onChange={handleChange}
+                            required
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                          >
+                            <option value="">Select a category</option>
+                            {categories.map((category) => (
+                              <option key={category} value={category}>
+                                {category}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+                            Description
+                          </label>
+                          <input
+                            type="text"
+                            id="description"
+                            name="description"
+                            value={formData.description}
+                            onChange={handleChange}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                          />
+                        </div>
+
+                        <div className="space-y-1">
+                          <label htmlFor="vendor" className="block text-sm font-medium text-gray-700">
+                            Vendor
+                          </label>
+                          <input
+                            type="text"
+                            id="vendor"
+                            name="vendor"
+                            value={formData.vendor}
+                            onChange={handleChange}
+                            className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                          />
+                        </div>
+
+                        <div>
+                          <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
+                            Amount
+                          </label>
+                          <div className="relative mt-1 rounded-md shadow-sm">
+                            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                              <span className="text-gray-500 sm:text-sm">$</span>
+                            </div>
+                            <input
+                              type="number"
+                              id="amount"
+                              name="amount"
+                              value={formData.amount}
+                              onChange={handleChange}
+                              required
+                              min="0"
+                              step="0.01"
+                              className="block w-full rounded-md border-gray-300 pl-7 focus:border-primary-500 focus:ring-primary-500"
+                              placeholder="0.00"
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label htmlFor="date" className="block text-sm font-medium text-gray-700">
+                            Date
+                          </label>
+                          <input
+                            type="date"
+                            id="date"
+                            name="date"
+                            value={formData.date}
+                            onChange={handleChange}
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                            required
+                          />
+                        </div>
                       </div>
 
-                      {/* Category */}
-                      <div>
-                        <label htmlFor="category" className="block text-sm font-medium text-gray-700">
-                          Category
-                        </label>
-                        <select
-                          id="category"
-                          name="category"
-                          required
-                          value={formData.category}
-                          onChange={handleChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        >
-                          {categories.map(category => (
-                            <option key={category} value={category}>
-                              {category}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-
-                      {/* Description */}
-                      <div>
-                        <label htmlFor="description" className="block text-sm font-medium text-gray-700">
-                          Description
-                        </label>
-                        <input
-                          type="text"
-                          name="description"
-                          id="description"
-                          required
-                          value={formData.description}
-                          onChange={handleChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        />
-                      </div>
-
-                      {/* Amount */}
-                      <div>
-                        <label htmlFor="amount" className="block text-sm font-medium text-gray-700">
-                          Amount ($)
-                        </label>
-                        <input
-                          type="number"
-                          name="amount"
-                          id="amount"
-                          required
-                          min="0"
-                          step="0.01"
-                          value={formData.amount}
-                          onChange={handleChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        />
-                      </div>
-
-                      {/* Notes */}
-                      <div>
-                        <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
-                          Notes (Optional)
-                        </label>
-                        <textarea
-                          id="notes"
-                          name="notes"
-                          rows={3}
-                          value={formData.notes}
-                          onChange={handleChange}
-                          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
-                        />
-                      </div>
-
-                      {/* Submit Button */}
                       <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
                         <button
                           type="submit"
-                          className="inline-flex w-full justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 sm:ml-3 sm:w-auto"
+                          className="inline-flex w-full justify-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 sm:ml-3 sm:w-auto"
                         >
                           {expense ? 'Save Changes' : 'Add Expense'}
                         </button>

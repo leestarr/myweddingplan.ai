@@ -5,6 +5,7 @@ import Dashboard from './pages/Dashboard';
 import GuestList from './pages/GuestList';
 import TaskManager from './pages/TaskManager';
 import Budget from './pages/Budget';
+import Expenses from './pages/Expenses';
 
 const queryClient = new QueryClient();
 
@@ -18,6 +19,7 @@ function App() {
             <Route path="guests" element={<GuestList />} />
             <Route path="tasks" element={<TaskManager />} />
             <Route path="budget" element={<Budget />} />
+            <Route path="expenses" element={<Expenses />} />
           </Route>
         </Routes>
       </Router>

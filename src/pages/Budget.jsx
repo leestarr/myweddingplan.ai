@@ -1,13 +1,12 @@
 import { useState, useEffect, useMemo } from 'react';
-import { PlusIcon, ArrowDownTrayIcon, Cog6ToothIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, ArrowDownTrayIcon, ChevronUpDownIcon, ChevronUpIcon, ChevronDownIcon, Cog6ToothIcon, PencilIcon, DocumentDuplicateIcon, TrashIcon, CheckIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import ExpenseModal from '../components/ExpenseModal';
 import CategoryModal from '../components/CategoryModal';
-import ExpenseTable from '../components/ExpenseTable';
-import CategoryBudgetCard from '../components/CategoryBudgetCard';
+import BudgetTreeView from '../components/BudgetTreeView';
 
 const initialCategories = [
-  'Venue',
-  'Catering',
+  'Venue & Ceremony',
+  'Catering & Drinks',
   'Decor',
   'Photography',
   'Entertainment',
@@ -42,6 +41,51 @@ export default function Budget() {
   const [editingExpense, setEditingExpense] = useState(null);
   const [selectedCategory, setSelectedCategory] = useState(null);
 
+  // Add sorting state
+  const [sortConfig, setSortConfig] = useState({
+    key: 'date',
+    direction: 'desc'
+  });
+
+  // Sorting function
+  const sortData = (data, key, direction) => {
+    return [...data].sort((a, b) => {
+      if (key === 'date') {
+        return direction === 'asc' 
+          ? new Date(a[key]) - new Date(b[key])
+          : new Date(b[key]) - new Date(a[key]);
+      }
+      if (key === 'amount') {
+        return direction === 'asc' 
+          ? a[key] - b[key]
+          : b[key] - a[key];
+      }
+      if (a[key] < b[key]) return direction === 'asc' ? -1 : 1;
+      if (a[key] > b[key]) return direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+  };
+
+  // Handle sort
+  const handleSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+    setExpenses(sortData(expenses, key, direction));
+  };
+
+  // Get sort icon
+  const getSortIcon = (columnKey) => {
+    if (sortConfig.key !== columnKey) {
+      return <ChevronUpDownIcon className="h-4 w-4 text-gray-400" />;
+    }
+    return sortConfig.direction === 'asc' 
+      ? <ChevronUpIcon className="h-4 w-4 text-gray-600" />
+      : <ChevronDownIcon className="h-4 w-4 text-gray-600" />;
+  };
+
   // Save to localStorage whenever data changes
   useEffect(() => {
     localStorage.setItem('weddingMasterBudget', masterBudget.toString());
@@ -54,8 +98,8 @@ export default function Budget() {
   const categoryData = useMemo(() => {
     const totals = {};
     const suggestedSplits = {
-      'Venue': 0.4,
-      'Catering': 0.25,
+      'Venue & Ceremony': 0.4,
+      'Catering & Drinks': 0.25,
       'Decor': 0.1,
       'Photography': 0.1,
       'Entertainment': 0.05,
@@ -68,24 +112,31 @@ export default function Budget() {
     categories.forEach(category => {
       totals[category] = {
         spent: 0,
-        budget: masterBudget * (suggestedSplits[category] || 0.1) // Default 10% if not specified
+        budget: masterBudget * (suggestedSplits[category] || 0.1), // Default 10% if not specified
+        expenses: []
       };
     });
 
-    // Calculate spent amounts
+    // Calculate spent amounts and collect expenses
     expenses.forEach(expense => {
       if (totals[expense.category]) {
         totals[expense.category].spent += expense.amount;
+        totals[expense.category].expenses.push(expense);
       }
     });
 
     return totals;
   }, [expenses, masterBudget, categories]);
 
-  // Calculate overall totals
-  const totalExpenses = expenses.reduce((sum, exp) => sum + exp.amount, 0);
-  const remainingBudget = masterBudget - totalExpenses;
-  const percentageSpent = masterBudget > 0 ? (totalExpenses / masterBudget) * 100 : 0;
+  // Calculate total budget from categories
+  const totalBudget = Object.values(categoryData).reduce((sum, category) => 
+    sum + (category.budget || 0), 0
+  );
+
+  // Calculate total spent from all expenses
+  const totalSpent = Object.values(categoryData).reduce((sum, category) => 
+    sum + (category.spent || 0), 0
+  );
 
   const handleAddExpense = (category = null) => {
     setSelectedCategory(category);
@@ -98,17 +149,17 @@ export default function Budget() {
     setModalOpen(true);
   };
 
-  const handleDeleteExpense = (expense) => {
+  const handleDeleteExpense = (index) => {
     if (window.confirm('Are you sure you want to delete this expense?')) {
-      setExpenses(prevExpenses => prevExpenses.filter(exp => exp !== expense));
+      setExpenses(prevExpenses => prevExpenses.filter((exp, i) => i !== index));
     }
   };
 
   const handleSaveExpense = (expenseData) => {
     if (editingExpense) {
       setExpenses(prevExpenses =>
-        prevExpenses.map(exp =>
-          exp === editingExpense ? expenseData : exp
+        prevExpenses.map((exp, i) =>
+          i === expenses.indexOf(editingExpense) ? expenseData : exp
         )
       );
     } else {
@@ -117,43 +168,155 @@ export default function Budget() {
     setModalOpen(false);
   };
 
-  const handleUpdateCategoryBudget = (category, newBudget) => {
-    const newTotals = { ...categoryData };
-    newTotals[category].budget = newBudget;
-    // Save the updated budgets to localStorage
-    localStorage.setItem('weddingCategoryBudgets', JSON.stringify(
-      Object.fromEntries(
-        Object.entries(newTotals).map(([cat, data]) => [cat, data.budget])
-      )
-    ));
+  const handleUpdateBudget = (category, newBudget) => {
+    const updatedCategoryData = {
+      ...categoryData,
+      [category]: {
+        ...categoryData[category],
+        budget: newBudget
+      }
+    };
+    setCategoryData(updatedCategoryData);
+    localStorage.setItem('categoryData', JSON.stringify(updatedCategoryData));
   };
 
   const handleExportCSV = () => {
-    const headers = ['Date', 'Category', 'Description', 'Amount'];
+    const headers = ['Date', 'Expense', 'Category', 'Description', 'Vendor', 'Amount'];
     const rows = expenses.map(exp => [
       new Date(exp.date).toLocaleDateString(),
+      exp.expenseName,
       exp.category,
       exp.description,
+      exp.vendor,
       exp.amount.toFixed(2)
     ]);
 
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\\n');
+    const csvContent = [headers, ...rows]
+      .map(row => row.join(','))
+      .join('\n');
 
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
-    const url = URL.createObjectURL(blob);
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'wedding_budget.csv');
+    link.href = URL.createObjectURL(blob);
+    link.setAttribute('download', 'wedding_expenses.csv');
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // Add pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+
+  // Calculate pagination values
+  const totalItems = expenses.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+
+  // Pagination handlers
+  const handlePageChange = (page) => {
+    setCurrentPage(Math.min(Math.max(1, page), totalPages));
+  };
+
+  const handleItemsPerPageChange = (value) => {
+    setItemsPerPage(value);
+    setCurrentPage(1); // Reset to first page when changing items per page
+  };
+
+  // Get current page items
+  const getCurrentPageItems = () => {
+    const sortedData = sortData(expenses, sortConfig.key, sortConfig.direction);
+    return sortedData.slice(startIndex, endIndex);
+  };
+
+  // Add inline editing state
+  const [editingId, setEditingId] = useState(null);
+  const [editingData, setEditingData] = useState({});
+
+  // Inline edit handlers
+  const startEditing = (expense) => {
+    setEditingId(expense.id);
+    setEditingData({ ...expense });
+  };
+
+  const cancelEditing = () => {
+    setEditingId(null);
+    setEditingData({});
+  };
+
+  const saveEditing = async () => {
+    try {
+      const expenseRef = doc(db, 'expenses', editingId);
+      await updateDoc(expenseRef, editingData);
+      
+      // Update local state
+      setExpenses(expenses.map(exp => 
+        exp.id === editingId ? { ...editingData } : exp
+      ));
+      
+      setEditingId(null);
+      setEditingData({});
+    } catch (error) {
+      console.error('Error updating expense:', error);
+    }
+  };
+
+  // Duplicate expense handler
+  const duplicateExpense = async (expense) => {
+    const newExpense = {
+      ...expense,
+      id: undefined, // Firebase will generate a new ID
+      date: new Date().toISOString().split('T')[0], // Set to today's date
+      description: `${expense.description} (Copy)`,
+    };
+
+    try {
+      const docRef = await addDoc(collection(db, 'expenses'), newExpense);
+      const expenseWithId = { ...newExpense, id: docRef.id };
+      setExpenses([...expenses, expenseWithId]);
+    } catch (error) {
+      console.error('Error duplicating expense:', error);
+    }
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="min-h-screen bg-gray-50 pb-8">
+      {/* Header Stats */}
+      <div className="bg-white shadow">
+        <div className="px-4 sm:px-6 lg:mx-auto lg:max-w-6xl lg:px-8">
+          <div className="py-6 md:flex md:items-center md:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center">
+                <div>
+                  <div className="flex items-center">
+                    <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:truncate sm:leading-9">
+                      Budget Overview
+                    </h1>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="mt-6 flex space-x-3 md:mt-0 md:ml-4">
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-600">Total Budget</p>
+                <p className="text-lg font-semibold text-gray-900">${totalBudget.toLocaleString()}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-600">Total Spent</p>
+                <p className="text-lg font-semibold text-gray-900">${totalSpent.toLocaleString()}</p>
+              </div>
+              <div className="text-right">
+                <p className="text-sm font-medium text-gray-600">Remaining</p>
+                <p className={`text-lg font-semibold ${totalBudget - totalSpent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                  ${(totalBudget - totalSpent).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       {/* Master Budget Card */}
       <div className="bg-white rounded-lg shadow-sm p-6">
         <div className="flex justify-between items-center mb-6">
@@ -196,18 +359,18 @@ export default function Budget() {
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="text-sm font-medium text-gray-500">Total Spent</h3>
             <p className={`mt-2 text-2xl font-semibold ${
-              totalExpenses > masterBudget ? 'text-red-600' : 'text-gray-900'
+              totalSpent > masterBudget ? 'text-red-600' : 'text-gray-900'
             }`}>
-              ${totalExpenses.toLocaleString()}
+              ${totalSpent.toLocaleString()}
             </p>
           </div>
 
           <div className="bg-gray-50 rounded-lg p-4">
             <h3 className="text-sm font-medium text-gray-500">Remaining</h3>
             <p className={`mt-2 text-2xl font-semibold ${
-              remainingBudget < 0 ? 'text-red-600' : 'text-green-600'
+              masterBudget - totalSpent < 0 ? 'text-red-600' : 'text-green-600'
             }`}>
-              ${remainingBudget.toLocaleString()}
+              ${(masterBudget - totalSpent).toLocaleString()}
             </p>
           </div>
 
@@ -217,15 +380,15 @@ export default function Budget() {
               <div className="relative pt-1">
                 <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
                   <div
-                    style={{ width: `${Math.min(percentageSpent, 100)}%` }}
+                    style={{ width: `${Math.min((totalSpent / masterBudget) * 100, 100)}%` }}
                     className={`shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center ${
-                      percentageSpent > 100 ? 'bg-red-500' : 'bg-primary-500'
+                      (totalSpent / masterBudget) * 100 > 100 ? 'bg-red-500' : 'bg-primary-500'
                     }`}
                   />
                 </div>
                 <div className="text-right">
                   <span className="text-2xl font-semibold inline-block">
-                    {percentageSpent.toFixed(1)}%
+                    {((totalSpent / masterBudget) * 100).toFixed(1)}%
                   </span>
                 </div>
               </div>
@@ -234,59 +397,21 @@ export default function Budget() {
         </div>
       </div>
 
-      {/* Category Budget Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {categories.map(category => (
-          <CategoryBudgetCard
-            key={category}
-            category={category}
-            budget={categoryData[category]?.budget || 0}
-            spent={categoryData[category]?.spent || 0}
-            onAddExpense={() => handleAddExpense(category)}
-            onUpdateBudget={handleUpdateCategoryBudget}
-          />
-        ))}
-      </div>
-
-      {/* Expenses Table Section */}
-      <div className="bg-white rounded-lg shadow-sm">
-        <div className="p-6">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-semibold text-gray-900">Expenses</h2>
-            <div className="flex space-x-4">
-              <button
-                onClick={handleExportCSV}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <ArrowDownTrayIcon className="h-5 w-5 mr-2 text-gray-500" />
-                Export CSV
-              </button>
-              <button
-                onClick={() => handleAddExpense()}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
-              >
-                <PlusIcon className="h-5 w-5 mr-2" />
-                Add Expense
-              </button>
-            </div>
-          </div>
-
-          <ExpenseTable
-            expenses={expenses}
-            onEditExpense={handleEditExpense}
-            onDeleteExpense={handleDeleteExpense}
-            masterBudget={masterBudget}
-          />
-        </div>
-      </div>
+      {/* Budget Tree */}
+      <BudgetTreeView
+        categories={categories}
+        categoryData={categoryData}
+        onAddExpense={handleAddExpense}
+        onUpdateBudget={handleUpdateBudget}
+      />
 
       {/* Expense Modal */}
       <ExpenseModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
         onSave={handleSaveExpense}
-        expense={editingExpense}
-        initialCategory={selectedCategory}
+        categories={categories}
+        editingExpense={editingExpense}
       />
 
       {/* Category Modal */}

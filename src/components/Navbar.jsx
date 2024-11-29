@@ -8,17 +8,19 @@ import {
   BuildingStorefrontIcon,
   ChatBubbleLeftIcon,
   Cog6ToothIcon,
+  BanknotesIcon,
 } from '@heroicons/react/24/outline';
 
 const mainNavigation = [
   { name: 'Dashboard', href: '/', icon: HomeIcon },
   { name: 'Guest List', href: '/guests', icon: UserGroupIcon },
   { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
-  { name: 'Chat', href: '/chat', icon: ChatBubbleLeftIcon },
+  { name: 'AI Chat', href: '/chat', icon: ChatBubbleLeftIcon },
 ];
 
 const projectNavigation = [
   { name: 'Budget', href: '/budget', icon: CurrencyDollarIcon },
+  { name: 'Expenses', href: '/expenses', icon: BanknotesIcon },
   { name: 'Vendors', href: '/vendors', icon: BuildingStorefrontIcon },
 ];
 
