@@ -10,6 +10,7 @@ import {
   ExclamationCircleIcon,
   ChartBarIcon,
   PencilIcon,
+  TrashIcon,
 } from '@heroicons/react/24/outline';
 import TaskModal from '../components/TaskModal';
 import TaskTimeline from '../components/TaskTimeline';
@@ -67,11 +68,22 @@ export default function TaskManager() {
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterPriority, setFilterPriority] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
+  const [categories, setCategories] = useState(() => {
+    const savedCategories = localStorage.getItem('weddingCategories');
+    return savedCategories ? JSON.parse(savedCategories) : CATEGORIES;
+  });
+  const [isAddingCategory, setIsAddingCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState('');
 
   // Save tasks to localStorage whenever they change
   useEffect(() => {
     localStorage.setItem('weddingTasks', JSON.stringify(tasks));
   }, [tasks]);
+
+  // Save categories to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('weddingCategories', JSON.stringify(categories));
+  }, [categories]);
 
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -153,6 +165,26 @@ export default function TaskManager() {
     setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
   };
 
+  const handleAddCategory = (e) => {
+    e.preventDefault();
+    if (newCategory.trim() && !categories.includes(newCategory.trim())) {
+      const updatedCategories = [...categories, newCategory.trim()];
+      setCategories(updatedCategories);
+      setNewCategory('');
+      setIsAddingCategory(false);
+    }
+  };
+
+  const handleDeleteCategory = (categoryToDelete) => {
+    if (categories.length > 1) {
+      const updatedCategories = categories.filter(cat => cat !== categoryToDelete);
+      setCategories(updatedCategories);
+      if (filterCategory === categoryToDelete) {
+        setFilterCategory('All');
+      }
+    }
+  };
+
   const getTasksByStatus = (status) => {
     return filteredTasks.filter(task => task.status === status);
   };
@@ -191,18 +223,82 @@ export default function TaskManager() {
               />
             </div>
             
-            <select
-              value={filterCategory}
-              onChange={(e) => setFilterCategory(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 min-w-[150px]"
-            >
-              <option value="All">All Categories</option>
-              {CATEGORIES.map(category => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
-              ))}
-            </select>
+            <div className="relative">
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="pl-3 pr-20 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 appearance-none min-w-[150px]"
+              >
+                <option value="All">All Categories</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+
+              {/* Add Category Button */}
+              <button
+                type="button"
+                onClick={() => setIsAddingCategory(true)}
+                className="absolute right-10 top-1/2 -translate-y-1/2 p-1 text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <PlusIcon className="h-5 w-5" />
+              </button>
+
+              {/* Delete Category Button */}
+              <button
+                type="button"
+                onClick={() => handleDeleteCategory(filterCategory)}
+                disabled={filterCategory === 'All' || categories.length <= 1}
+                className={`absolute right-2 top-1/2 -translate-y-1/2 p-1 transition-colors ${
+                  filterCategory === 'All' || categories.length <= 1
+                    ? 'text-gray-300 cursor-not-allowed'
+                    : 'text-gray-400 hover:text-red-600'
+                }`}
+              >
+                <TrashIcon className="h-5 w-5" />
+              </button>
+
+              {/* Add Category Modal */}
+              {isAddingCategory && (
+                <div className="absolute z-10 mt-2 w-full rounded-md bg-white shadow-lg ring-1 ring-black ring-opacity-5">
+                  <form onSubmit={handleAddCategory} className="p-4">
+                    <input
+                      type="text"
+                      value={newCategory}
+                      onChange={(e) => setNewCategory(e.target.value)}
+                      placeholder="Enter new category"
+                      className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm"
+                      autoFocus
+                    />
+                    <div className="mt-3 flex justify-end space-x-3">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsAddingCategory(false);
+                          setNewCategory('');
+                        }}
+                        className="rounded px-3 py-1.5 text-sm text-gray-600 hover:bg-gray-100"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={!newCategory.trim()}
+                        className={`rounded px-3 py-1.5 text-sm text-white transition-colors ${
+                          newCategory.trim()
+                            ? 'bg-primary-500 hover:bg-primary-600'
+                            : 'bg-gray-300 cursor-not-allowed'
+                        }`}
+                      >
+                        Add
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </div>
 
             <select
               value={filterPriority}
@@ -344,10 +440,6 @@ export default function TaskManager() {
                                     }`}>
                                       {task.priority}
                                     </span>
-                                    <span className="inline-flex items-center text-xs text-gray-500">
-                                      <TagIcon className="h-3.5 w-3.5 mr-1" />
-                                      {task.category}
-                                    </span>
                                     {task.dueDate && (
                                       <span className="inline-flex items-center text-xs text-gray-500">
                                         <CalendarIcon className="h-3.5 w-3.5 mr-1" />
@@ -396,8 +488,10 @@ export default function TaskManager() {
         onClose={() => setModalOpen(false)}
         onSave={handleSaveTask}
         task={editingTask}
-        categories={CATEGORIES}
+        categories={categories}
         priorities={PRIORITIES}
+        onAddCategory={handleAddCategory}
+        onDeleteCategory={handleDeleteCategory}
       />
     </div>
   );
