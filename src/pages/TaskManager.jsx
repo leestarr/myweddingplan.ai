@@ -81,25 +81,40 @@ export default function TaskManager() {
     return matchesSearch && matchesCategory && matchesPriority;
   });
 
-  const handleDragEnd = (result) => {
-    if (!result.destination) return;
+  const onDragEnd = (result) => {
+    const { source, destination, draggableId } = result;
 
-    const { source, destination } = result;
-    const allTasks = [...tasks];
-    const sourceIndex = allTasks.findIndex(t => t.id.toString() === result.draggableId);
-    const taskToMove = allTasks[sourceIndex];
+    // If dropped outside a droppable area
+    if (!destination) return;
+
+    // If dropped in the same position
+    if (
+      source.droppableId === destination.droppableId &&
+      source.index === destination.index
+    ) return;
+
+    // Find the task being dragged
+    const task = tasks.find(t => t.id.toString() === draggableId);
+    if (!task) return;
+
+    // Create a new array without the dragged task
+    const newTasks = tasks.filter(t => t.id.toString() !== draggableId);
 
     // Update the task's status
-    taskToMove.status = destination.droppableId;
+    const updatedTask = {
+      ...task,
+      status: destination.droppableId
+    };
 
-    // Remove from old position and insert at new position
-    allTasks.splice(sourceIndex, 1);
-    const destinationTasks = allTasks.filter(t => t.status === destination.droppableId);
-    const insertIndex = Math.min(destination.index, destinationTasks.length);
-    const insertPosition = allTasks.findIndex(t => t.status === destination.droppableId) + insertIndex;
-    allTasks.splice(insertPosition >= 0 ? insertPosition : 0, 0, taskToMove);
+    // Find all tasks in the destination status
+    const tasksInDestination = newTasks.filter(t => t.status === destination.droppableId);
 
-    setTasks(allTasks);
+    // Insert the task at the new position
+    const finalTasks = [...newTasks];
+    const insertAt = finalTasks.findIndex(t => t.status === destination.droppableId) + destination.index;
+    finalTasks.splice(insertAt >= 0 ? insertAt : 0, 0, updatedTask);
+
+    setTasks(finalTasks);
   };
 
   const handleAddTask = () => {
@@ -181,7 +196,9 @@ export default function TaskManager() {
             >
               <option value="All">All Categories</option>
               {CATEGORIES.map(category => (
-                <option key={category} value={category}>{category}</option>
+                <option key={category} value={category}>
+                  {category}
+                </option>
               ))}
             </select>
 
@@ -192,7 +209,9 @@ export default function TaskManager() {
             >
               <option value="All">All Priorities</option>
               {PRIORITIES.map(priority => (
-                <option key={priority} value={priority}>{priority}</option>
+                <option key={priority} value={priority}>
+                  {priority}
+                </option>
               ))}
             </select>
           </div>
@@ -235,7 +254,7 @@ export default function TaskManager() {
 
       {/* Task Views */}
       {view === 'board' && (
-        <DragDropContext onDragEnd={handleDragEnd}>
+        <DragDropContext onDragEnd={onDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {Object.values(STATUS_COLUMNS).map(column => (
               <div
@@ -255,7 +274,7 @@ export default function TaskManager() {
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`p-4 min-h-[200px] ${
+                      className={`p-4 min-h-[200px] transition-colors duration-200 ${
                         snapshot.isDraggingOver ? 'bg-gray-50' : ''
                       }`}
                     >
@@ -270,6 +289,12 @@ export default function TaskManager() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
+                              style={{
+                                ...provided.draggableProps.style,
+                                transform: snapshot.isDragging
+                                  ? provided.draggableProps.style?.transform
+                                  : 'none',
+                              }}
                               className={`bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-3 hover:shadow-md transition-all duration-200 ${
                                 snapshot.isDragging ? 'shadow-lg ring-2 ring-primary-500 ring-opacity-50' : ''
                               }`}
@@ -307,7 +332,10 @@ export default function TaskManager() {
                                   </div>
                                 </div>
                                 <button
-                                  onClick={() => handleEditTask(task)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditTask(task);
+                                  }}
                                   className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-500 rounded-full hover:bg-gray-50"
                                 >
                                   <span className="sr-only">Edit</span>
