@@ -257,44 +257,47 @@ export default function TaskManager() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-3"
+                              className="bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-3 hover:shadow-md transition-all duration-200"
                             >
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <h4 className="text-sm font-medium text-gray-900">
+                              <div className="flex items-start justify-between space-x-4">
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-sm font-medium text-gray-900 mb-1">
                                     {task.title}
                                   </h4>
-                                  <p className="mt-1 text-sm text-gray-500 line-clamp-2">
-                                    {task.description}
-                                  </p>
+                                  {task.description && (
+                                    <p className="text-sm text-gray-500 line-clamp-2 mb-2">
+                                      {task.description}
+                                    </p>
+                                  )}
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                      task.priority === 'High'
+                                        ? 'bg-red-100 text-red-700'
+                                        : task.priority === 'Medium'
+                                        ? 'bg-yellow-100 text-yellow-700'
+                                        : 'bg-green-100 text-green-700'
+                                    }`}>
+                                      {task.priority}
+                                    </span>
+                                    <span className="inline-flex items-center text-xs text-gray-500">
+                                      <TagIcon className="h-3.5 w-3.5 mr-1" />
+                                      {task.category}
+                                    </span>
+                                    {task.dueDate && (
+                                      <span className="inline-flex items-center text-xs text-gray-500">
+                                        <CalendarIcon className="h-3.5 w-3.5 mr-1" />
+                                        {new Date(task.dueDate).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 <button
                                   onClick={() => handleEditTask(task)}
-                                  className="ml-4 text-gray-400 hover:text-gray-500"
+                                  className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-500 rounded-full hover:bg-gray-50"
                                 >
                                   <span className="sr-only">Edit</span>
-                                  <PencilIcon className="h-5 w-5" />
+                                  <PencilIcon className="h-4 w-4" />
                                 </button>
-                              </div>
-                              <div className="mt-4 flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  <span className={`px-2 py-1 text-xs rounded-full ${
-                                    task.priority === 'High'
-                                      ? 'bg-red-100 text-red-700'
-                                      : task.priority === 'Medium'
-                                      ? 'bg-yellow-100 text-yellow-700'
-                                      : 'bg-green-100 text-green-700'
-                                  }`}>
-                                    {task.priority}
-                                  </span>
-                                  <span className="text-xs text-gray-500">
-                                    {task.category}
-                                  </span>
-                                </div>
-                                <div className="flex items-center text-sm text-gray-500">
-                                  <CalendarIcon className="h-4 w-4 mr-1" />
-                                  {task.dueDate}
-                                </div>
                               </div>
                             </div>
                           )}
