@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';  
 import {
   PlusIcon,
   CalendarIcon,
@@ -63,7 +63,7 @@ export default function TaskManager() {
   const [tasks, setTasks] = useState(initialTasks);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
-  const [view, setView] = useState('board'); // board, timeline, progress
+  const [view, setView] = useState('board');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterPriority, setFilterPriority] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
@@ -83,38 +83,41 @@ export default function TaskManager() {
 
   const onDragEnd = (result) => {
     const { source, destination, draggableId } = result;
+    
+    // Drop outside the list
+    if (!destination) {
+      return;
+    }
 
-    // If dropped outside a droppable area
-    if (!destination) return;
-
-    // If dropped in the same position
+    // No movement
     if (
-      source.droppableId === destination.droppableId &&
-      source.index === destination.index
-    ) return;
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
 
-    // Find the task being dragged
-    const task = tasks.find(t => t.id.toString() === draggableId);
-    if (!task) return;
+    // Find the task that was dragged
+    const taskToMove = tasks.find(task => task.id.toString() === draggableId);
+    
+    if (!taskToMove) {
+      return;
+    }
 
-    // Create a new array without the dragged task
-    const newTasks = tasks.filter(t => t.id.toString() !== draggableId);
-
-    // Update the task's status
+    // Create new array without the dragged task
+    const newTasks = tasks.filter(task => task.id.toString() !== draggableId);
+    
+    // Update task status
     const updatedTask = {
-      ...task,
+      ...taskToMove,
       status: destination.droppableId
     };
 
-    // Find all tasks in the destination status
-    const tasksInDestination = newTasks.filter(t => t.status === destination.droppableId);
-
-    // Insert the task at the new position
-    const finalTasks = [...newTasks];
-    const insertAt = finalTasks.findIndex(t => t.status === destination.droppableId) + destination.index;
-    finalTasks.splice(insertAt >= 0 ? insertAt : 0, 0, updatedTask);
-
-    setTasks(finalTasks);
+    // Insert task at new position
+    newTasks.splice(destination.index, 0, updatedTask);
+    
+    // Update state
+    setTasks(newTasks);
   };
 
   const handleAddTask = () => {
@@ -252,6 +255,23 @@ export default function TaskManager() {
       </div>
 
       {/* Task Views */}
+      <style jsx>{`
+        .task-card {
+          transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .task-card:hover {
+          transform: translateY(-2px);
+        }
+        .task-card.dragging {
+          transform: scale(1.05) rotate(2deg);
+          z-index: 100;
+        }
+        .droppable-column {
+          min-height: 100px;
+          transition: background-color 0.2s ease;
+        }
+      `}</style>
+
       {view === 'board' && (
         <DragDropContext onDragEnd={onDragEnd}>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -273,13 +293,15 @@ export default function TaskManager() {
                     <div
                       ref={provided.innerRef}
                       {...provided.droppableProps}
-                      className={`p-4 min-h-[200px] transition-colors duration-200 ${
-                        snapshot.isDraggingOver ? 'bg-gray-50' : ''
+                      className={`p-4 droppable-column ${
+                        snapshot.isDraggingOver 
+                          ? 'bg-primary-50 border-2 border-dashed border-primary-300' 
+                          : ''
                       }`}
                     >
                       {getTasksByStatus(column.id).map((task, index) => (
                         <Draggable
-                          key={task.id}
+                          key={task.id.toString()}
                           draggableId={task.id.toString()}
                           index={index}
                         >
@@ -288,17 +310,21 @@ export default function TaskManager() {
                               ref={provided.innerRef}
                               {...provided.draggableProps}
                               {...provided.dragHandleProps}
-                              style={{
-                                ...provided.draggableProps.style,
-                                transform: snapshot.isDragging
-                                  ? provided.draggableProps.style?.transform
-                                  : 'none',
-                              }}
-                              className={`bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-3 hover:shadow-md transition-all duration-200 ${
-                                snapshot.isDragging ? 'shadow-lg ring-2 ring-primary-500 ring-opacity-50' : ''
-                              }`}
+                              className={`relative bg-white rounded-lg border border-gray-200 shadow-sm p-4 mb-3 hover:shadow-md transition-all duration-200 cursor-grab active:cursor-grabbing group ${
+                                snapshot.isDragging 
+                                  ? 'shadow-lg ring-2 ring-primary-500 ring-opacity-50 rotate-2 scale-105' 
+                                  : ''
+                              } task-card`}
                             >
-                              <div className="flex items-start justify-between space-x-4">
+                              {/* Drag handle */}
+                              <div 
+                                className="absolute top-2 right-2 w-6 h-6 flex items-center justify-center text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+                                {...provided.dragHandleProps}
+                              >
+                                ⋮⋮
+                              </div>
+
+                              <div className="flex items-start justify-between space-x-4 pt-4">
                                 <div className="flex-1 min-w-0">
                                   <h4 className="text-sm font-medium text-gray-900 mb-1">
                                     {task.title}
@@ -341,6 +367,7 @@ export default function TaskManager() {
                                   <PencilIcon className="h-4 w-4" />
                                 </button>
                               </div>
+                              {provided.placeholder}
                             </div>
                           )}
                         </Draggable>

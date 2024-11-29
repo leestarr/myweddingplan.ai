@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@headlessui/react": "^2.2.0",
+    "@hello-pangea/dnd": "^17.0.0",
     "@heroicons/react": "^2.0.18",
     "@supabase/supabase-js": "^2.39.0",
     "chart.js": "^4.4.0",
