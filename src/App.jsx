@@ -9,6 +9,7 @@ import Expenses from './pages/Expenses';
 import AIChat from './pages/AIChat';
 import Documents from './pages/Documents';
 import Vendors from './pages/Vendors';
+import Quotes from './pages/Quotes';
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ function App() {
             <Route path="chat" element={<AIChat />} />
             <Route path="documents" element={<Documents />} />
             <Route path="vendors" element={<Vendors />} />
+            <Route path="quotes" element={<Quotes />} />
           </Route>
         </Routes>
       </Router>
