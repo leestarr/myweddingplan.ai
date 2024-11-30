@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
@@ -18,6 +18,10 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <Router>
         <Routes>
+          {/* Login route - will create the page next */}
+          <Route path="/login" element={<Navigate to="/" replace />} />
+          
+          {/* Protected routes */}
           <Route path="/" element={<Layout />}>
             <Route index element={<Dashboard />} />
             <Route path="guests" element={<GuestList />} />

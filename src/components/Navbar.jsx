@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   HomeIcon,
   UserGroupIcon,
@@ -11,6 +11,7 @@ import {
   BanknotesIcon,
   DocumentIcon,
   DocumentTextIcon,
+  ArrowRightOnRectangleIcon,
 } from '@heroicons/react/24/outline';
 
 const mainNavigation = [
@@ -34,6 +35,13 @@ const bottomNavigation = [
 ];
 
 export default function Navbar() {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    // TODO: Add logout logic here when authentication is implemented
+    navigate('/login');
+  };
+
   return (
     <nav className="w-64 bg-white border-r border-gray-200 flex flex-col">
       {/* Logo */}
@@ -112,6 +120,15 @@ export default function Navbar() {
               {item.name}
             </NavLink>
           ))}
+          
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-colors text-red-600 hover:bg-red-50"
+          >
+            <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
+            Logout
+          </button>
         </div>
       </div>
     </nav>
