@@ -68,6 +68,22 @@ export default function Quotes() {
   const [sortBy, setSortBy] = useState('date'); // 'date', 'amount', 'vendor'
   const [sortOrder, setSortOrder] = useState('desc'); // 'asc', 'desc'
 
+  const [showAddQuoteModal, setShowAddQuoteModal] = useState(false);
+  const [newQuote, setNewQuote] = useState({
+    title: '',
+    vendor: '',
+    amount: '',
+    location: '',
+    time: '',
+    guestNumber: '',
+    description: '',
+    status: 'Pending',
+    date: new Date().toISOString().split('T')[0],
+    type: '',
+    url: ''
+  });
+  const [selectedFile, setSelectedFile] = useState(null);
+
   const filteredAndSortedQuotes = useMemo(() => {
     return quotes
       .filter(quote => {
@@ -108,7 +124,23 @@ export default function Quotes() {
   const handleViewDocument = (e, quote) => {
     e.stopPropagation(); // Prevent card click
     setSelectedQuote(quote);
+    
+    // If it's a newly added quote with a file object
+    if (quote.file) {
+      const fileUrl = URL.createObjectURL(quote.file);
+      setSelectedQuote({ ...quote, url: fileUrl });
+    }
+    
     setShowViewer(true);
+  };
+
+  const handleCloseViewer = () => {
+    setShowViewer(false);
+    setSelectedQuote(null);
+    // Clean up any object URLs we created
+    if (selectedQuote?.file) {
+      URL.revokeObjectURL(selectedQuote.url);
+    }
   };
 
   const handleFileUpload = (event) => {
@@ -148,13 +180,46 @@ export default function Quotes() {
     setShowQuoteDetails(true);
   };
 
-  const closeViewer = () => {
-    setShowViewer(false);
+  const handleAddQuote = (e) => {
+    e.preventDefault();
+    const fileType = selectedFile?.type.includes('pdf') ? QuoteTypes.PDF :
+                    selectedFile?.type.includes('word') || selectedFile?.type.includes('docx') ? QuoteTypes.WORD :
+                    QuoteTypes.EMAIL;
+    
+    // Create a local URL for the file and store the file itself
+    const fileUrl = selectedFile ? URL.createObjectURL(selectedFile) : '';
+    
+    const newQuoteWithId = {
+      ...newQuote,
+      id: quotes.length + 1,
+      type: fileType,
+      url: fileUrl,
+      file: selectedFile // Store the actual file object
+    };
+
+    setQuotes([...quotes, newQuoteWithId]);
+    setNewQuote({
+      title: '',
+      vendor: '',
+      amount: '',
+      location: '',
+      time: '',
+      guestNumber: '',
+      description: '',
+      status: 'Pending',
+      date: new Date().toISOString().split('T')[0],
+      type: '',
+      url: ''
+    });
+    setSelectedFile(null);
+    setShowAddQuoteModal(false);
   };
 
-  const closeQuoteDetails = () => {
-    setShowQuoteDetails(false);
-    setSelectedQuote(null);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+    }
   };
 
   const updateQuote = (updatedQuote) => {
@@ -169,7 +234,7 @@ export default function Quotes() {
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-semibold text-gray-900">Quotes</h1>
           <button
-            onClick={() => fileInputRef.current?.click()}
+            onClick={() => setShowAddQuoteModal(true)}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <PlusIcon className="h-5 w-5" />
@@ -224,6 +289,154 @@ export default function Quotes() {
           </div>
         </div>
       </div>
+
+      {/* Add Quote Modal */}
+      {showAddQuoteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-2xl font-semibold text-gray-900">Add New Quote</h2>
+              <button
+                onClick={() => setShowAddQuoteModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <XMarkIcon className="h-6 w-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAddQuote} className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Title
+                  </label>
+                  <input
+                    type="text"
+                    value={newQuote.title}
+                    onChange={(e) => setNewQuote({ ...newQuote, title: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter quote title"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Vendor
+                  </label>
+                  <input
+                    type="text"
+                    value={newQuote.vendor}
+                    onChange={(e) => setNewQuote({ ...newQuote, vendor: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter vendor name"
+                    required
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Amount
+                    </label>
+                    <input
+                      type="text"
+                      value={newQuote.amount}
+                      onChange={(e) => setNewQuote({ ...newQuote, amount: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter amount"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Guest Number
+                    </label>
+                    <input
+                      type="number"
+                      value={newQuote.guestNumber}
+                      onChange={(e) => setNewQuote({ ...newQuote, guestNumber: e.target.value })}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      placeholder="Enter guest count"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Location
+                  </label>
+                  <input
+                    type="text"
+                    value={newQuote.location}
+                    onChange={(e) => setNewQuote({ ...newQuote, location: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter location"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Time
+                  </label>
+                  <input
+                    type="text"
+                    value={newQuote.time}
+                    onChange={(e) => setNewQuote({ ...newQuote, time: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter time"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Notes
+                  </label>
+                  <textarea
+                    value={newQuote.description}
+                    onChange={(e) => setNewQuote({ ...newQuote, description: e.target.value })}
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter description"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Upload Document
+                  </label>
+                  <input
+                    type="file"
+                    onChange={handleFileChange}
+                    accept=".pdf,.docx,.doc"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    required
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end gap-4 pt-4 border-t">
+                <button
+                  type="button"
+                  onClick={() => setShowAddQuoteModal(false)}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+                >
+                  Add Quote
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Quotes Grid */}
       {filteredAndSortedQuotes.length === 0 ? (
@@ -466,12 +679,12 @@ export default function Quotes() {
         selectedQuote.type === QuoteTypes.PDF ? (
           <PDFViewer
             file={selectedQuote.url}
-            onClose={closeViewer}
+            onClose={handleCloseViewer}
           />
         ) : selectedQuote.type === QuoteTypes.WORD ? (
           <DocumentViewer
             file={selectedQuote.url}
-            onClose={closeViewer}
+            onClose={handleCloseViewer}
           />
         ) : null
       )}
