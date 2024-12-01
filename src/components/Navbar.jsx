@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import {
   HomeIcon,
   UserGroupIcon,
@@ -15,31 +16,36 @@ import {
 } from '@heroicons/react/24/outline';
 
 const mainNavigation = [
-  { name: 'Dashboard', href: '/', icon: HomeIcon },
-  { name: 'Guest List', href: '/guests', icon: UserGroupIcon },
-  { name: 'Tasks', href: '/tasks', icon: ClipboardDocumentListIcon },
-  { name: 'AI Chat', href: '/chat', icon: ChatBubbleLeftIcon },
-  { name: 'Documents', href: '/documents', icon: DocumentIcon },
+  { name: 'Dashboard', href: '/app', icon: HomeIcon },
+  { name: 'Guest List', href: '/app/guests', icon: UserGroupIcon },
+  { name: 'Tasks', href: '/app/tasks', icon: ClipboardDocumentListIcon },
+  { name: 'AI Chat', href: '/app/chat', icon: ChatBubbleLeftIcon },
+  { name: 'Documents', href: '/app/documents', icon: DocumentIcon },
 ];
 
 const projectNavigation = [
-  { name: 'Budget', href: '/budget', icon: CurrencyDollarIcon },
-  { name: 'Expenses', href: '/expenses', icon: BanknotesIcon },
-  { name: 'Vendors', href: '/vendors', icon: BuildingStorefrontIcon },
-  { name: 'Quotes', href: '/quotes', icon: DocumentTextIcon },
+  { name: 'Budget', href: '/app/budget', icon: CurrencyDollarIcon },
+  { name: 'Expenses', href: '/app/expenses', icon: BanknotesIcon },
+  { name: 'Vendors', href: '/app/vendors', icon: BuildingStorefrontIcon },
+  { name: 'Quotes', href: '/app/quotes', icon: DocumentTextIcon },
 ];
 
 const bottomNavigation = [
-  { name: 'Profile', href: '/profile', icon: UserCircleIcon },
-  { name: 'Settings', href: '/settings', icon: Cog6ToothIcon },
+  { name: 'Profile', href: '/app/profile', icon: UserCircleIcon },
+  { name: 'Settings', href: '/app/settings', icon: Cog6ToothIcon },
 ];
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
-  const handleLogout = () => {
-    // TODO: Add logout logic here when authentication is implemented
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      await logout();
+      navigate('/');
+    } catch (error) {
+      console.error('Failed to log out:', error);
+    }
   };
 
   return (
