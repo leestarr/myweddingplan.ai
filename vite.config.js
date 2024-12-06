@@ -19,10 +19,15 @@ export default defineConfig({
     include: ['react-toastify', 'recharts']
   },
   server: {
+    port: 5173,
     host: true,
-    port: 3000
+    strictPort: true,
+    open: true,
+    historyApiFallback: true
   },
   preview: {
-    port: 3000
+    port: 5173,
+    strictPort: true,
+    historyApiFallback: true
   }
 })

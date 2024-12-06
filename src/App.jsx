@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import PrivateRoute from './components/PrivateRoute';
@@ -16,7 +16,14 @@ import Quotes from './pages/Quotes';
 import WeddingForum from './pages/WeddingForum';
 import WeddingStore from './pages/WeddingStore';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: false,
+      refetchOnWindowFocus: false,
+    },
+  },
+});
 
 function App() {
   return (
@@ -37,7 +44,8 @@ function App() {
                 </PrivateRoute>
               }
             >
-              <Route index element={<Dashboard />} />
+              <Route index element={<Navigate to="/app/dashboard" replace />} />
+              <Route path="dashboard" element={<Dashboard />} />
               <Route path="guests" element={<GuestList />} />
               <Route path="tasks" element={<TaskManager />} />
               <Route path="budget" element={<Budget />} />
@@ -48,6 +56,7 @@ function App() {
               <Route path="quotes" element={<Quotes />} />
               <Route path="forum" element={<WeddingForum />} />
               <Route path="store" element={<WeddingStore />} />
+              <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
             </Route>
           </Routes>
         </Router>
