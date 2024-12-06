@@ -13,6 +13,8 @@ import {
   DocumentIcon,
   DocumentTextIcon,
   ArrowRightOnRectangleIcon,
+  ChatBubbleLeftRightIcon,
+  ShoppingBagIcon
 } from '@heroicons/react/24/outline';
 
 const mainNavigation = [
@@ -28,6 +30,11 @@ const projectNavigation = [
   { name: 'Expenses', href: '/app/expenses', icon: BanknotesIcon },
   { name: 'Vendors', href: '/app/vendors', icon: BuildingStorefrontIcon },
   { name: 'Quotes', href: '/app/quotes', icon: DocumentTextIcon },
+];
+
+const resourceNavigation = [
+  { name: 'Wedding Forum', href: '/app/forum', icon: ChatBubbleLeftRightIcon },
+  { name: 'Wedding Store', href: '/app/store', icon: ShoppingBagIcon },
 ];
 
 const bottomNavigation = [
@@ -105,36 +112,59 @@ export default function Navbar() {
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Bottom Navigation */}
-      <div className="border-t border-gray-200 p-4">
-        <div className="space-y-1">
-          {bottomNavigation.map((item) => (
-            <NavLink
-              key={item.name}
-              to={item.href}
-              className={({ isActive }) =>
-                `flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-colors ${
-                  isActive
-                    ? 'bg-primary-50 text-primary-600'
-                    : 'text-gray-600 hover:bg-gray-50'
-                }`
-              }
+        {/* Resources Section */}
+        <div>
+          <h2 className="px-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+            RESOURCES
+          </h2>
+          <div className="space-y-1">
+            {resourceNavigation.map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                className={({ isActive }) =>
+                  `flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-primary-50 text-primary-600'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`
+                }
+              >
+                <item.icon className="h-5 w-5 mr-3" />
+                {item.name}
+              </NavLink>
+            ))}
+          </div>
+        </div>
+
+        {/* Bottom Navigation */}
+        <div className="mt-auto">
+          <div className="space-y-1">
+            {bottomNavigation.map((item) => (
+              <NavLink
+                key={item.name}
+                to={item.href}
+                className={({ isActive }) =>
+                  `flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-colors ${
+                    isActive
+                      ? 'bg-primary-50 text-primary-600'
+                      : 'text-gray-600 hover:bg-gray-50'
+                  }`
+                }
+              >
+                <item.icon className="h-5 w-5 mr-3" />
+                {item.name}
+              </NavLink>
+            ))}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center px-2 py-2 text-sm font-medium text-gray-600 rounded-lg hover:bg-gray-50 transition-colors"
             >
-              <item.icon className="h-5 w-5 mr-3" />
-              {item.name}
-            </NavLink>
-          ))}
-          
-          {/* Logout Button */}
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center px-2 py-2 text-sm font-medium rounded-lg transition-colors text-red-600 hover:bg-red-50"
-          >
-            <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
-            Logout
-          </button>
+              <ArrowRightOnRectangleIcon className="h-5 w-5 mr-3" />
+              Logout
+            </button>
+          </div>
         </div>
       </div>
     </nav>

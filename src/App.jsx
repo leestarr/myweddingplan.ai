@@ -13,6 +13,8 @@ import AIChat from './pages/AIChat';
 import Documents from './pages/Documents';
 import Vendors from './pages/Vendors';
 import Quotes from './pages/Quotes';
+import WeddingForum from './pages/WeddingForum';
+import WeddingStore from './pages/WeddingStore';
 
 const queryClient = new QueryClient();
 
@@ -44,6 +46,8 @@ function App() {
               <Route path="documents" element={<Documents />} />
               <Route path="vendors" element={<Vendors />} />
               <Route path="quotes" element={<Quotes />} />
+              <Route path="forum" element={<WeddingForum />} />
+              <Route path="store" element={<WeddingStore />} />
             </Route>
           </Routes>
         </Router>
