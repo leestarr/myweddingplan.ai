@@ -1,6 +1,10 @@
 import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
+import { format } from 'date-fns';
+
+const paymentStatusOptions = ['Paid', 'Pending', 'Partial'];
+const paymentMethodOptions = ['Cash', 'Credit Card', 'Bank Transfer', 'Check', 'Other'];
 
 export default function ExpenseModal({
   isOpen,
@@ -16,7 +20,12 @@ export default function ExpenseModal({
     description: '',
     amount: '',
     date: new Date().toISOString().split('T')[0],
-    vendor: ''
+    vendor: '',
+    paymentStatus: 'Pending',
+    paymentMethod: '',
+    dueDate: '',
+    paidAmount: '0',
+    notes: ''
   });
 
   useEffect(() => {
@@ -27,7 +36,12 @@ export default function ExpenseModal({
         description: expense.description || '',
         amount: expense.amount?.toString() || '',
         date: expense.date || new Date().toISOString().split('T')[0],
-        vendor: expense.vendor || ''
+        vendor: expense.vendor || '',
+        paymentStatus: expense.paymentStatus || 'Pending',
+        paymentMethod: expense.paymentMethod || '',
+        dueDate: expense.dueDate || '',
+        paidAmount: expense.paidAmount?.toString() || '0',
+        notes: expense.notes || ''
       });
     } else {
       setFormData({
@@ -36,7 +50,12 @@ export default function ExpenseModal({
         description: '',
         amount: '',
         date: new Date().toISOString().split('T')[0],
-        vendor: ''
+        vendor: '',
+        paymentStatus: 'Pending',
+        paymentMethod: '',
+        dueDate: '',
+        paidAmount: '0',
+        notes: ''
       });
     }
   }, [expense, initialCategory]);
@@ -45,7 +64,12 @@ export default function ExpenseModal({
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
+      // Update payment status based on paid amount
+      ...(name === 'paidAmount' && {
+        paymentStatus: parseFloat(value) === 0 ? 'Pending' :
+          parseFloat(value) >= parseFloat(prev.amount) ? 'Paid' : 'Partial'
+      })
     }));
   };
 
@@ -53,7 +77,8 @@ export default function ExpenseModal({
     e.preventDefault();
     onSave({
       ...formData,
-      amount: parseFloat(formData.amount)
+      amount: parseFloat(formData.amount),
+      paidAmount: parseFloat(formData.paidAmount || '0')
     });
     setFormData({
       expenseName: '',
@@ -61,7 +86,12 @@ export default function ExpenseModal({
       description: '',
       amount: '',
       date: new Date().toISOString().split('T')[0],
-      vendor: ''
+      vendor: '',
+      paymentStatus: 'Pending',
+      paymentMethod: '',
+      dueDate: '',
+      paidAmount: '0',
+      notes: ''
     });
     onClose();
   };
@@ -208,9 +238,102 @@ export default function ExpenseModal({
                             name="date"
                             value={formData.date}
                             onChange={handleChange}
-                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                             required
+                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
                           />
+                        </div>
+
+                        {/* New Payment Fields */}
+                        <div className="space-y-4">
+                          <div>
+                            <label htmlFor="paymentStatus" className="block text-sm font-medium text-gray-700">
+                              Payment Status
+                            </label>
+                            <select
+                              id="paymentStatus"
+                              name="paymentStatus"
+                              value={formData.paymentStatus}
+                              onChange={handleChange}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                            >
+                              {paymentStatusOptions.map((status) => (
+                                <option key={status} value={status}>
+                                  {status}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label htmlFor="paymentMethod" className="block text-sm font-medium text-gray-700">
+                              Payment Method
+                            </label>
+                            <select
+                              id="paymentMethod"
+                              name="paymentMethod"
+                              value={formData.paymentMethod}
+                              onChange={handleChange}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                            >
+                              <option value="">Select a payment method</option>
+                              {paymentMethodOptions.map((method) => (
+                                <option key={method} value={method}>
+                                  {method}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+
+                          <div>
+                            <label htmlFor="dueDate" className="block text-sm font-medium text-gray-700">
+                              Due Date
+                            </label>
+                            <input
+                              type="date"
+                              id="dueDate"
+                              name="dueDate"
+                              value={formData.dueDate}
+                              onChange={handleChange}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                            />
+                          </div>
+
+                          <div>
+                            <label htmlFor="paidAmount" className="block text-sm font-medium text-gray-700">
+                              Paid Amount
+                            </label>
+                            <div className="relative mt-1 rounded-md shadow-sm">
+                              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                                <span className="text-gray-500 sm:text-sm">$</span>
+                              </div>
+                              <input
+                                type="number"
+                                id="paidAmount"
+                                name="paidAmount"
+                                value={formData.paidAmount}
+                                onChange={handleChange}
+                                min="0"
+                                step="0.01"
+                                className="block w-full rounded-md border-gray-300 pl-7 focus:border-primary-500 focus:ring-primary-500"
+                                placeholder="0.00"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label htmlFor="notes" className="block text-sm font-medium text-gray-700">
+                              Payment Notes
+                            </label>
+                            <textarea
+                              id="notes"
+                              name="notes"
+                              value={formData.notes}
+                              onChange={handleChange}
+                              rows={2}
+                              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                              placeholder="Add any payment-related notes here..."
+                            />
+                          </div>
                         </div>
                       </div>
 
