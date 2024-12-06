@@ -17,5 +17,12 @@ export default defineConfig({
   },
   optimizeDeps: {
     include: ['react-toastify', 'recharts']
+  },
+  server: {
+    host: true,
+    port: 3000
+  },
+  preview: {
+    port: 3000
   }
 })
