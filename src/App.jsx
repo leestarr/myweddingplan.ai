@@ -9,7 +9,7 @@ import GuestList from './pages/GuestList';
 import TaskManager from './pages/TaskManager';
 import Budget from './pages/Budget';
 import Expenses from './pages/Expenses';
-import AIChat from './pages/AIChat';
+import WeddingAI from './pages/WeddingAI';
 import Documents from './pages/Documents';
 import Vendors from './pages/Vendors';
 import Quotes from './pages/Quotes';
@@ -50,7 +50,7 @@ function App() {
               <Route path="tasks" element={<TaskManager />} />
               <Route path="budget" element={<Budget />} />
               <Route path="expenses" element={<Expenses />} />
-              <Route path="chat" element={<AIChat />} />
+              <Route path="wedding-ai" element={<WeddingAI />} />
               <Route path="documents" element={<Documents />} />
               <Route path="vendors" element={<Vendors />} />
               <Route path="quotes" element={<Quotes />} />

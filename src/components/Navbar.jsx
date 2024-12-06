@@ -14,14 +14,15 @@ import {
   DocumentTextIcon,
   ArrowRightOnRectangleIcon,
   ChatBubbleLeftRightIcon,
-  ShoppingBagIcon
+  ShoppingBagIcon,
+  SparklesIcon,
 } from '@heroicons/react/24/outline';
 
 const mainNavigation = [
   { name: 'Dashboard', href: '/app', icon: HomeIcon },
   { name: 'Guest List', href: '/app/guests', icon: UserGroupIcon },
   { name: 'Tasks', href: '/app/tasks', icon: ClipboardDocumentListIcon },
-  { name: 'AI Chat', href: '/app/chat', icon: ChatBubbleLeftIcon },
+  { name: 'Wedding AI', href: '/app/wedding-ai', icon: SparklesIcon },
   { name: 'Documents', href: '/app/documents', icon: DocumentIcon },
 ];
 
