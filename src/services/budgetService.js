@@ -20,7 +20,7 @@ export const budgetService = {
     // Save or update master budget
     async saveMasterBudget(userId, amount, isLocked = false) {
         try {
-            const budgetRef = doc(db, BUDGET_COLLECTION, userId);
+            const budgetRef = doc(db, `${BUDGET_COLLECTION}/${userId}/master`, 'budget');
             await setDoc(budgetRef, {
                 amount: parseFloat(amount),
                 isLocked,
@@ -35,7 +35,7 @@ export const budgetService = {
     // Get master budget
     async getMasterBudget(userId) {
         try {
-            const budgetRef = doc(db, BUDGET_COLLECTION, userId);
+            const budgetRef = doc(db, `${BUDGET_COLLECTION}/${userId}/master`, 'budget');
             const docSnap = await getDoc(budgetRef);
             return docSnap.exists() ? docSnap.data() : { amount: 0, isLocked: false };
         } catch (error) {
@@ -47,11 +47,8 @@ export const budgetService = {
     // Save categories
     async saveCategories(userId, categories) {
         try {
-            const budgetRef = doc(db, BUDGET_COLLECTION, userId);
-            await setDoc(budgetRef, {
-                categories,
-                updatedAt: serverTimestamp()
-            }, { merge: true });
+            const budgetRef = doc(db, `${BUDGET_COLLECTION}/${userId}/master`, 'categories');
+            await setDoc(budgetRef, { categories }, { merge: true });
         } catch (error) {
             console.error('Error saving categories:', error);
             throw error;
@@ -61,7 +58,7 @@ export const budgetService = {
     // Get categories
     async getCategories(userId) {
         try {
-            const budgetRef = doc(db, BUDGET_COLLECTION, userId);
+            const budgetRef = doc(db, `${BUDGET_COLLECTION}/${userId}/master`, 'categories');
             const docSnap = await getDoc(budgetRef);
             return docSnap.exists() ? docSnap.data().categories : [];
         } catch (error) {
@@ -73,14 +70,14 @@ export const budgetService = {
     // Add expense
     async addExpense(userId, expense) {
         try {
-            const expenseRef = collection(db, EXPENSES_COLLECTION);
-            const docRef = await addDoc(expenseRef, {
+            const expensesRef = collection(db, `${BUDGET_COLLECTION}/${userId}/${EXPENSES_COLLECTION}`);
+            const docRef = await addDoc(expensesRef, {
                 ...expense,
                 userId,
                 createdAt: serverTimestamp(),
                 updatedAt: serverTimestamp()
             });
-            return { id: docRef.id, ...expense };
+            return docRef.id;
         } catch (error) {
             console.error('Error adding expense:', error);
             throw error;
@@ -88,14 +85,13 @@ export const budgetService = {
     },
 
     // Update expense
-    async updateExpense(expenseId, expense) {
+    async updateExpense(userId, expenseId, expense) {
         try {
-            const expenseRef = doc(db, EXPENSES_COLLECTION, expenseId);
+            const expenseRef = doc(db, `${BUDGET_COLLECTION}/${userId}/${EXPENSES_COLLECTION}`, expenseId);
             await updateDoc(expenseRef, {
                 ...expense,
                 updatedAt: serverTimestamp()
             });
-            return { id: expenseId, ...expense };
         } catch (error) {
             console.error('Error updating expense:', error);
             throw error;
@@ -103,9 +99,10 @@ export const budgetService = {
     },
 
     // Delete expense
-    async deleteExpense(expenseId) {
+    async deleteExpense(userId, expenseId) {
         try {
-            await deleteDoc(doc(db, EXPENSES_COLLECTION, expenseId));
+            const expenseRef = doc(db, `${BUDGET_COLLECTION}/${userId}/${EXPENSES_COLLECTION}`, expenseId);
+            await deleteDoc(expenseRef);
         } catch (error) {
             console.error('Error deleting expense:', error);
             throw error;
@@ -115,9 +112,8 @@ export const budgetService = {
     // Get all expenses for a user
     async getExpenses(userId) {
         try {
-            const expensesRef = collection(db, EXPENSES_COLLECTION);
-            const q = query(expensesRef, where('userId', '==', userId));
-            const querySnapshot = await getDocs(q);
+            const expensesRef = collection(db, `${BUDGET_COLLECTION}/${userId}/${EXPENSES_COLLECTION}`);
+            const querySnapshot = await getDocs(expensesRef);
             return querySnapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()

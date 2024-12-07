@@ -2,84 +2,92 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    // Default rule - require authentication for all operations unless specified otherwise
+    // Helper functions
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.admin == true;
+    }
+
+    // Default rule - deny all access unless explicitly allowed
     match /{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if false;
     }
 
-    // Forum posts rules
-    match /forum_posts/{postId} {
-      allow read: if true;  // Anyone can read posts
-      allow create: if request.auth != null;  // Only authenticated users can create
-      allow update, delete: if request.auth != null && 
-        (resource.data.authorId == request.auth.uid ||  // Author can update/delete
-         request.auth.token.admin == true);  // Admins can update/delete
-    }
-    
-    // Forum comments rules
-    match /forum_comments/{commentId} {
-      allow read: if true;  // Anyone can read comments
-      allow create: if request.auth != null;  // Only authenticated users can create
-      allow update, delete: if request.auth != null && 
-        (resource.data.authorId == request.auth.uid ||  // Author can update/delete
-         request.auth.token.admin == true);  // Admins can update/delete
+    // User profiles
+    match /users/{userId} {
+      allow read: if isSignedIn();
+      allow write: if isOwner(userId);
     }
 
-    // Wedding date collection
+    // Wedding dates
     match /wedding_dates/{userId} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isOwner(userId);
     }
 
-    // Budget and expenses rules
-    match /budgets/{budgetId} {
-      allow read, write: if request.auth != null;
+    // Budget and expenses
+    match /budgets/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
     }
 
-    match /expenses/{expenseId} {
-      allow read, write: if request.auth != null;
+    match /expenses/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
     }
 
-    // Vendors collection rules
-    match /vendors/{vendorId} {
-      allow read: if true;  // Allow public reading of vendors
-      allow write: if request.auth != null;  // Only authenticated users can write
-    }
-    
-    match /vendorReviews/{reviewId} {
-      allow read: if true;  // Allow public reading of reviews
-      allow write: if request.auth != null;  // Only authenticated users can write
-    }
-    
-    match /vendorBookings/{bookingId} {
-      allow read, write: if request.auth != null;
+    // Guests and tables
+    match /guests/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
     }
 
-    // Guest and table management
-    match /guests/{guestId} {
-      allow read, write: if request.auth != null;
-    }
-
-    match /tables/{tableId} {
-      allow read, write: if request.auth != null;
-    }
-
-    // User settings
-    match /settings/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
-    }
-
-    // Store listings
-    match /store_listings/{listingId} {
-      allow read: if true;
-      allow create: if request.auth != null;
-      allow update, delete: if request.auth != null && 
-        (resource.data.sellerId == request.auth.uid ||
-         request.auth.token.admin == true);
+    match /tables/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
     }
 
     // Tasks
-    match /tasks/{taskId} {
-      allow read, write: if request.auth != null;
+    match /tasks/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Settings
+    match /settings/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Vendor bookings
+    match /vendorBookings/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Quotes
+    match /quotes/{userId}/{document=**} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // Public collections
+    match /vendors/{vendorId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isAdmin();
+    }
+
+    match /forum_posts/{postId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && 
+        (resource.data.authorId == request.auth.uid || isAdmin());
+    }
+    
+    match /forum_comments/{commentId} {
+      allow read: if true;
+      allow create: if isSignedIn();
+      allow update, delete: if isSignedIn() && 
+        (resource.data.authorId == request.auth.uid || isAdmin());
     }
   }
 }

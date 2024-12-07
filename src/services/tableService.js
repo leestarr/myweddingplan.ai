@@ -7,17 +7,19 @@ import {
   updateDoc, 
   deleteDoc,
   query,
-  where 
+  where,
+  setDoc 
 } from 'firebase/firestore';
 
 const TABLES_COLLECTION = 'tables';
 
 export const tableService = {
   // Create a new table
-  createTable: async (tableData) => {
+  createTable: async (userId, tableData) => {
     try {
-      const docRef = await addDoc(collection(db, TABLES_COLLECTION), {
+      const docRef = await addDoc(collection(db, `${TABLES_COLLECTION}/${userId}/tables`), {
         ...tableData,
+        userId,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
@@ -31,10 +33,30 @@ export const tableService = {
     }
   },
 
-  // Get all tables
-  getTables: async () => {
+  // Save table (create or update)
+  saveTable: async (userId, tableId, tableData) => {
     try {
-      const querySnapshot = await getDocs(collection(db, TABLES_COLLECTION));
+      const tableRef = doc(db, `${TABLES_COLLECTION}/${userId}/tables`, tableId);
+      await setDoc(tableRef, {
+        ...tableData,
+        userId,
+        updatedAt: new Date().toISOString()
+      }, { merge: true });
+      return {
+        id: tableId,
+        ...tableData
+      };
+    } catch (error) {
+      console.error('Error saving table:', error);
+      throw error;
+    }
+  },
+
+  // Get all tables for a user
+  getTables: async (userId) => {
+    try {
+      const tablesRef = collection(db, `${TABLES_COLLECTION}/${userId}/tables`);
+      const querySnapshot = await getDocs(tablesRef);
       return querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
@@ -46,9 +68,9 @@ export const tableService = {
   },
 
   // Update a table
-  updateTable: async (tableId, tableData) => {
+  updateTable: async (userId, tableId, tableData) => {
     try {
-      const tableRef = doc(db, TABLES_COLLECTION, tableId);
+      const tableRef = doc(db, `${TABLES_COLLECTION}/${userId}/tables`, tableId);
       await updateDoc(tableRef, {
         ...tableData,
         updatedAt: new Date().toISOString()
@@ -64,30 +86,12 @@ export const tableService = {
   },
 
   // Delete a table
-  deleteTable: async (tableId) => {
+  deleteTable: async (userId, tableId) => {
     try {
-      await deleteDoc(doc(db, TABLES_COLLECTION, tableId));
-      return true;
+      const tableRef = doc(db, `${TABLES_COLLECTION}/${userId}/tables`, tableId);
+      await deleteDoc(tableRef);
     } catch (error) {
       console.error('Error deleting table:', error);
-      throw error;
-    }
-  },
-
-  // Get tables for a specific event
-  getTablesByEvent: async (eventId) => {
-    try {
-      const q = query(
-        collection(db, TABLES_COLLECTION),
-        where('eventId', '==', eventId)
-      );
-      const querySnapshot = await getDocs(q);
-      return querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-    } catch (error) {
-      console.error('Error getting tables by event:', error);
       throw error;
     }
   }

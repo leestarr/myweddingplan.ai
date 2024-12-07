@@ -16,6 +16,7 @@ import {
   ChatBubbleLeftRightIcon,
   ShoppingBagIcon,
   SparklesIcon,
+  ArrowPathIcon,
 } from '@heroicons/react/24/outline';
 
 const mainNavigation = [
@@ -41,6 +42,7 @@ const resourceNavigation = [
 const bottomNavigation = [
   { name: 'Profile', href: '/app/profile', icon: UserCircleIcon },
   { name: 'Settings', href: '/app/settings', icon: Cog6ToothIcon },
+  { name: 'Data Migration', href: '/app/data-migration', icon: ArrowPathIcon },
 ];
 
 export default function Navbar() {

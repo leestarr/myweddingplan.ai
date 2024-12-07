@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { Toaster } from 'react-hot-toast';
@@ -17,6 +17,7 @@ import Quotes from './pages/Quotes';
 import WeddingForum from './pages/WeddingForum';
 import WeddingStore from './pages/WeddingStore';
 import TestRunner from './pages/TestRunner';
+import DataMigration from './pages/DataMigration';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -27,61 +28,73 @@ const queryClient = new QueryClient({
   },
 });
 
-function App() {
+// Enable React Router v7 future flags
+const router = createBrowserRouter(
+  [
+    {
+      path: '/',
+      element: <Landing />,
+    },
+    {
+      path: '/login',
+      element: <Landing />,
+    },
+    {
+      path: '/app',
+      element: (
+        <PrivateRoute>
+          <Layout />
+        </PrivateRoute>
+      ),
+      children: [
+        { path: '', element: <Navigate to="dashboard" replace /> },
+        { path: 'dashboard', element: <Dashboard /> },
+        { path: 'guests', element: <GuestList /> },
+        { path: 'tasks', element: <TaskManager /> },
+        { path: 'budget', element: <Budget /> },
+        { path: 'expenses', element: <Expenses /> },
+        { path: 'wedding-ai', element: <WeddingAI /> },
+        { path: 'documents', element: <Documents /> },
+        { path: 'vendors', element: <Vendors /> },
+        { path: 'quotes', element: <Quotes /> },
+        { path: 'forum', element: <WeddingForum /> },
+        { path: 'store', element: <WeddingStore /> },
+        { path: 'test', element: <TestRunner /> },
+        { path: 'data-migration', element: <DataMigration /> },
+        { path: '*', element: <Navigate to="dashboard" replace /> },
+      ],
+    },
+  ],
+  {
+    future: {
+      v7_startTransition: true,
+      v7_relativeSplatPath: true
+    }
+  }
+);
+
+export default function App() {
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
-        <Router>
-          <Routes>
-            {/* Public routes */}
-            <Route path="/" element={<Landing />} />
-            <Route path="/login" element={<Landing />} />
-            
-            {/* Protected routes */}
-            <Route
-              path="/app"
-              element={
-                <PrivateRoute>
-                  <Layout />
-                </PrivateRoute>
+        <RouterProvider router={router} />
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            duration: 4000,
+            style: {
+              background: '#363636',
+              color: '#fff',
+            },
+            success: {
+              duration: 3000,
+              theme: {
+                primary: '#4aed88',
               }
-            >
-              <Route index element={<Navigate to="/app/dashboard" replace />} />
-              <Route path="dashboard" element={<Dashboard />} />
-              <Route path="guests" element={<GuestList />} />
-              <Route path="tasks" element={<TaskManager />} />
-              <Route path="budget" element={<Budget />} />
-              <Route path="expenses" element={<Expenses />} />
-              <Route path="wedding-ai" element={<WeddingAI />} />
-              <Route path="documents" element={<Documents />} />
-              <Route path="vendors" element={<Vendors />} />
-              <Route path="quotes" element={<Quotes />} />
-              <Route path="forum" element={<WeddingForum />} />
-              <Route path="store" element={<WeddingStore />} />
-              <Route path="test" element={<TestRunner />} />
-              <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
-            </Route>
-          </Routes>
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#363636',
-                color: '#fff',
-              },
-              success: {
-                duration: 3000,
-                theme: {
-                  primary: '#4aed88',
-                }
-              },
-            }}
-          />
-        </Router>
+            },
+          }}
+        />
       </AuthProvider>
     </QueryClientProvider>
   );
 }
-
-export default App;
