@@ -18,6 +18,8 @@ import { format, isAfter, isBefore, addDays, startOfMonth, endOfMonth, eachMonth
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer, Tooltip } from 'recharts';
+import { useAuth } from '../contexts/AuthContext';
+import { budgetService } from '../services/budgetService';
 
 const initialCategories = [
   'Venue & Ceremony',
@@ -31,16 +33,10 @@ const initialCategories = [
 ];
 
 export default function Expenses() {
-  const [expenses, setExpenses] = useState(() => {
-    const saved = localStorage.getItem('weddingExpenses');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [categories, setCategories] = useState(() => {
-    const saved = localStorage.getItem('weddingCategories');
-    return saved ? JSON.parse(saved) : initialCategories;
-  });
-
+  const { user } = useAuth();
+  const [expenses, setExpenses] = useState([]);
+  const [categories, setCategories] = useState(initialCategories);
+  const [isLoading, setIsLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState(null);
   const [sortConfig, setSortConfig] = useState({
@@ -48,28 +44,30 @@ export default function Expenses() {
     direction: 'desc'
   });
 
-  // Save expenses to localStorage whenever they change
+  // Load expenses and categories from Firebase
   useEffect(() => {
-    localStorage.setItem('weddingExpenses', JSON.stringify(expenses));
-  }, [expenses]);
-
-  // Save categories to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('weddingCategories', JSON.stringify(categories));
-  }, [categories]);
-
-  // Update categories whenever they change in localStorage
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedCategories = localStorage.getItem('weddingCategories');
-      if (savedCategories) {
-        setCategories(JSON.parse(savedCategories));
+    const loadData = async () => {
+      if (!user?.uid) return;
+      
+      try {
+        setIsLoading(true);
+        const loadedExpenses = await budgetService.getExpenses(user.uid);
+        setExpenses(loadedExpenses);
+        
+        const budgetData = await budgetService.getMasterBudget(user.uid);
+        if (budgetData?.categories) {
+          setCategories(budgetData.categories);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        toast.error('Failed to load expenses');
+      } finally {
+        setIsLoading(false);
       }
     };
 
-    window.addEventListener('storage', handleStorageChange);
-    return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+    loadData();
+  }, [user?.uid]);
 
   // Check for upcoming due dates
   useEffect(() => {
@@ -149,9 +147,42 @@ export default function Expenses() {
     setModalOpen(true);
   };
 
-  const handleDeleteExpense = (expenseId) => {
-    if (window.confirm('Are you sure you want to delete this expense?')) {
-      setExpenses(prevExpenses => prevExpenses.filter(exp => exp.id !== expenseId));
+  // Handle saving new expense
+  const handleSaveExpense = async (expenseData) => {
+    if (!user?.uid) return;
+
+    try {
+      const savedExpense = editingExpense
+        ? await budgetService.updateExpense(editingExpense.id, { ...expenseData, userId: user.uid })
+        : await budgetService.addExpense(user.uid, expenseData);
+
+      setExpenses(prev => {
+        if (editingExpense) {
+          return prev.map(exp => exp.id === editingExpense.id ? savedExpense : exp);
+        }
+        return [...prev, savedExpense];
+      });
+      
+      setModalOpen(false);
+      setEditingExpense(null);
+      toast.success(`Expense ${editingExpense ? 'updated' : 'added'} successfully!`);
+    } catch (error) {
+      console.error('Error saving expense:', error);
+      toast.error('Failed to save expense');
+    }
+  };
+
+  // Handle deleting expense
+  const handleDeleteExpense = async (expenseId) => {
+    if (!user?.uid) return;
+    
+    try {
+      await budgetService.deleteExpense(expenseId);
+      setExpenses(prev => prev.filter(exp => exp.id !== expenseId));
+      toast.success('Expense deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting expense:', error);
+      toast.error('Failed to delete expense');
     }
   };
 
@@ -163,32 +194,6 @@ export default function Expenses() {
       description: `${expense.description} (Copy)`,
     };
     setExpenses([...expenses, newExpense]);
-  };
-
-  const handleSaveExpense = (expenseData) => {
-    const processedData = {
-      ...expenseData,
-      amount: parseFloat(expenseData.amount),
-      paidAmount: parseFloat(expenseData.paidAmount)
-    };
-
-    if (editingExpense) {
-      setExpenses(prevExpenses =>
-        prevExpenses.map(exp =>
-          exp.id === editingExpense.id ? { 
-            ...processedData, 
-            id: editingExpense.id
-          } : exp
-        )
-      );
-    } else {
-      const newExpense = {
-        ...processedData,
-        id: Math.max(0, ...expenses.map(e => e.id)) + 1
-      };
-      setExpenses(prevExpenses => [...prevExpenses, newExpense]);
-    }
-    setModalOpen(false);
   };
 
   const handleExportCSV = () => {
