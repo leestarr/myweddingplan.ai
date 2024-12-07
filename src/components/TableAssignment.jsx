@@ -1,13 +1,19 @@
 import { Fragment, useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { XMarkIcon, PlusIcon, MinusIcon } from '@heroicons/react/24/outline';
+import { useAuth } from '../contexts/AuthContext';
+import { tableService } from '../services/tableService';
+import { toast } from 'react-toastify';
 
 export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuests }) {
+  const { user } = useAuth();
   const [numTables, setNumTables] = useState(10);
   const [selectedTable, setSelectedTable] = useState(null);
   const [draggedGuest, setDraggedGuest] = useState(null);
   const [localGuests, setLocalGuests] = useState(guests);
   const [groupingOption, setGroupingOption] = useState('none');
+  const [isLoading, setIsLoading] = useState(true);
+  const [tables, setTables] = useState([]);
 
   const GROUP_OPTIONS = [
     { id: 'none', name: 'No Grouping' },
@@ -15,6 +21,110 @@ export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuest
     { id: 'group', name: 'By Group (Family/Friends)' },
     { id: 'status', name: 'By RSVP Status' }
   ];
+
+  // Load tables from Firebase
+  useEffect(() => {
+    const loadTables = async () => {
+      if (!user?.uid) return;
+
+      try {
+        setIsLoading(true);
+        const loadedTables = await tableService.getTables(user.uid);
+        if (loadedTables.length > 0) {
+          setTables(loadedTables);
+          setNumTables(loadedTables.length);
+        } else {
+          // Initialize default tables
+          const defaultTables = Array.from({ length: 10 }, (_, i) => ({
+            id: (i + 1).toString(),
+            number: i + 1,
+            capacity: 8,
+            guests: []
+          }));
+          setTables(defaultTables);
+          // Save default tables to Firebase
+          await Promise.all(defaultTables.map(table => 
+            tableService.saveTable(user.uid, table)
+          ));
+        }
+      } catch (error) {
+        console.error('Error loading tables:', error);
+        toast.error('Failed to load table assignments');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (isOpen) {
+      loadTables();
+      setLocalGuests(guests);
+    }
+  }, [isOpen, user?.uid]);
+
+  // Update tables when numTables changes
+  useEffect(() => {
+    const updateTables = async () => {
+      if (!user?.uid) return;
+
+      try {
+        const currentTables = [...tables];
+        if (numTables > currentTables.length) {
+          // Add new tables
+          const newTables = Array.from(
+            { length: numTables - currentTables.length }, 
+            (_, i) => ({
+              id: (currentTables.length + i + 1).toString(),
+              number: currentTables.length + i + 1,
+              capacity: 8,
+              guests: []
+            })
+          );
+          const updatedTables = [...currentTables, ...newTables];
+          setTables(updatedTables);
+          // Save new tables to Firebase
+          await Promise.all(newTables.map(table => 
+            tableService.saveTable(user.uid, table)
+          ));
+        } else if (numTables < currentTables.length) {
+          // Remove tables and update guest assignments
+          const tablesToRemove = currentTables.slice(numTables);
+          const updatedTables = currentTables.slice(0, numTables);
+          setTables(updatedTables);
+          
+          // Update guests that were assigned to removed tables
+          const updatedGuests = localGuests.map(guest => ({
+            ...guest,
+            table: tablesToRemove.some(t => t.number === guest.table) ? null : guest.table
+          }));
+          setLocalGuests(updatedGuests);
+
+          // Delete removed tables from Firebase
+          await Promise.all(tablesToRemove.map(table => 
+            tableService.deleteTable(table.id)
+          ));
+        }
+      } catch (error) {
+        console.error('Error updating tables:', error);
+        toast.error('Failed to update tables');
+      }
+    };
+
+    updateTables();
+  }, [numTables, user?.uid]);
+
+  const handleSave = async () => {
+    if (!user?.uid) return;
+
+    try {
+      await tableService.updateTableAssignments(user.uid, tables, localGuests);
+      onUpdateGuests(localGuests);
+      toast.success('Table assignments saved successfully!');
+      onClose();
+    } catch (error) {
+      console.error('Error saving table assignments:', error);
+      toast.error('Failed to save table assignments');
+    }
+  };
 
   // Function to group guests based on selected option
   const getGroupedGuests = (guestList) => {
@@ -39,8 +149,6 @@ export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuest
     setLocalGuests(guests);
   }, [guests]);
 
-  const tables = Array.from({ length: numTables }, (_, i) => i + 1);
-  
   const getGuestsAtTable = (tableNumber) => {
     return localGuests.filter(guest => guest.table === tableNumber);
   };
@@ -63,7 +171,6 @@ export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuest
         g.id === draggedGuest.id ? { ...g, table: tableNumber } : g
       );
       setLocalGuests(updatedGuests);
-      onUpdateGuests(updatedGuests);
       setDraggedGuest(null);
     }
   };
@@ -73,7 +180,6 @@ export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuest
       g.id === guest.id ? { ...g, table: null } : g
     );
     setLocalGuests(updatedGuests);
-    onUpdateGuests(updatedGuests);
   };
 
   const handleAddTable = () => {
@@ -200,8 +306,7 @@ export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuest
                                     <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                                     <span>{guest.group}</span>
                                     {guest.dietary && (
-                                      <>
-                                        <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                      <><span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                                         <span className="text-primary-600">{guest.dietary}</span>
                                       </>
                                     )}
@@ -215,17 +320,17 @@ export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuest
 
                       {/* Tables Grid */}
                       <div className="col-span-3 grid grid-cols-3 gap-4 max-h-[calc(100vh-300px)] overflow-y-auto">
-                        {tables.map((tableNumber) => {
-                          const tableGuests = getGuestsAtTable(tableNumber);
+                        {tables.map((table) => {
+                          const tableGuests = getGuestsAtTable(table.number);
                           return (
                             <div
-                              key={tableNumber}
+                              key={table.id}
                               className="border border-gray-200 rounded-lg p-4 bg-white hover:border-primary-100 transition-colors"
                               onDragOver={handleDragOver}
-                              onDrop={() => handleDrop(tableNumber)}
+                              onDrop={() => handleDrop(table.number)}
                             >
                               <div className="font-medium text-gray-900 mb-3 flex items-center justify-between">
-                                <span>Table {tableNumber}</span>
+                                <span>Table {table.number}</span>
                                 <span className="text-sm text-gray-500 bg-gray-50 px-2 py-1 rounded-md">
                                   {tableGuests.length} guests
                                 </span>
@@ -253,14 +358,12 @@ export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuest
                                       <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
                                         {guest.category && <span>{guest.category}</span>}
                                         {guest.group && (
-                                          <>
-                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                          <><span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                                             <span>{guest.group}</span>
                                           </>
                                         )}
                                         {guest.dietary && (
-                                          <>
-                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                          <><span className="w-1 h-1 bg-gray-300 rounded-full"></span>
                                             <span className="text-primary-600">{guest.dietary}</span>
                                           </>
                                         )}
