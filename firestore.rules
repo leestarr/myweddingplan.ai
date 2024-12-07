@@ -2,6 +2,24 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Forum posts rules
+    match /forum_posts/{postId} {
+      allow read: if true;  // Anyone can read posts
+      allow create: if request.auth != null;  // Only authenticated users can create
+      allow update, delete: if request.auth != null && 
+        (resource.data.authorId == request.auth.uid ||  // Author can update/delete
+         request.auth.token.admin == true);  // Admins can update/delete
+    }
+    
+    // Forum comments rules
+    match /forum_comments/{commentId} {
+      allow read: if true;  // Anyone can read comments
+      allow create: if request.auth != null;  // Only authenticated users can create
+      allow update, delete: if request.auth != null && 
+        (resource.data.authorId == request.auth.uid ||  // Author can update/delete
+         request.auth.token.admin == true);  // Admins can update/delete
+    }
+
     // Chat messages rules
     match /chat_messages/{messageId} {
       allow read: if request.auth != null && resource.data.userId == request.auth.uid;
