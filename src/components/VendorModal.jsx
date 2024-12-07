@@ -2,16 +2,34 @@ import React, { useState, useEffect } from 'react';
 import { Dialog } from '@headlessui/react';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 
+const DEFAULT_CATEGORIES = [
+  'Venue',
+  'Catering',
+  'Photography',
+  'Videography',
+  'Florist',
+  'Music & Entertainment',
+  'Wedding Planner',
+  'Dress & Attire',
+  'Hair & Makeup',
+  'Transportation',
+  'Invitations',
+  'Jewelry',
+  'Favors & Gifts',
+  'Officiant',
+  'Other'
+];
+
 export default function VendorModal({
   isOpen,
   onClose,
   onSave,
   vendor = null,
-  categories,
+  categories = DEFAULT_CATEGORIES,
 }) {
   const [formData, setFormData] = useState({
     name: '',
-    category: categories[0],
+    category: categories[0] || '',
     description: '',
     priceRange: '$',
     image: '',

@@ -8,6 +8,25 @@ service cloud.firestore {
       allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
     }
     
+    // Vendors collection rules
+    match /vendors/{vendorId} {
+      allow read: if true;  // Allow public reading of vendors
+      allow write: if request.auth != null;  // Only authenticated users can write
+    }
+    
+    match /vendorReviews/{reviewId} {
+      allow read: if true;  // Allow public reading of reviews
+      allow write: if request.auth != null;  // Only authenticated users can write
+    }
+    
+    match /vendorBookings/{bookingId} {
+      allow read: if request.auth != null && (
+        resource.data.userId == request.auth.uid ||  // User can read their own bookings
+        resource.data.vendorId in get(/databases/$(database)/documents/vendors/$(request.auth.uid)).data.vendorIds  // Vendor can read their bookings
+      );
+      allow write: if request.auth != null;  // Only authenticated users can write
+    }
+    
     // Existing rules for other collections
     match /tasks/{document=**} {
       allow read, write: if request.auth != null;
