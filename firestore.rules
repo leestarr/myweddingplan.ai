@@ -2,6 +2,11 @@ rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Default rule - require authentication for all operations unless specified otherwise
+    match /{document=**} {
+      allow read, write: if request.auth != null;
+    }
+
     // Forum posts rules
     match /forum_posts/{postId} {
       allow read: if true;  // Anyone can read posts
@@ -20,12 +25,20 @@ service cloud.firestore {
          request.auth.token.admin == true);  // Admins can update/delete
     }
 
-    // Chat messages rules
-    match /chat_messages/{messageId} {
-      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+    // Wedding date collection
+    match /wedding_dates/{userId} {
+      allow read, write: if request.auth != null;
     }
-    
+
+    // Budget and expenses rules
+    match /budgets/{budgetId} {
+      allow read, write: if request.auth != null;
+    }
+
+    match /expenses/{expenseId} {
+      allow read, write: if request.auth != null;
+    }
+
     // Vendors collection rules
     match /vendors/{vendorId} {
       allow read: if true;  // Allow public reading of vendors
@@ -38,35 +51,34 @@ service cloud.firestore {
     }
     
     match /vendorBookings/{bookingId} {
-      allow read: if request.auth != null && (
-        resource.data.userId == request.auth.uid ||  // User can read their own bookings
-        resource.data.vendorId in get(/databases/$(database)/documents/vendors/$(request.auth.uid)).data.vendorIds  // Vendor can read their bookings
-      );
-      allow write: if request.auth != null;  // Only authenticated users can write
-    }
-    
-    // Existing rules for other collections
-    match /tasks/{document=**} {
       allow read, write: if request.auth != null;
     }
-    
-    match /guests/{document=**} {
+
+    // Guest and table management
+    match /guests/{guestId} {
       allow read, write: if request.auth != null;
     }
-    
-    match /tables/{document=**} {
+
+    match /tables/{tableId} {
       allow read, write: if request.auth != null;
     }
-    
-    match /settings/{document=**} {
-      allow read, write: if request.auth != null;
+
+    // User settings
+    match /settings/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
-    
-    match /budgets/{document=**} {
-      allow read, write: if request.auth != null;
+
+    // Store listings
+    match /store_listings/{listingId} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update, delete: if request.auth != null && 
+        (resource.data.sellerId == request.auth.uid ||
+         request.auth.token.admin == true);
     }
-    
-    match /expenses/{document=**} {
+
+    // Tasks
+    match /tasks/{taskId} {
       allow read, write: if request.auth != null;
     }
   }
