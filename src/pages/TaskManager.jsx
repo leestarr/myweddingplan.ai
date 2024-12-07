@@ -15,6 +15,8 @@ import {
 import TaskModal from '../components/TaskModal';
 import TaskTimeline from '../components/TaskTimeline';
 import TaskProgress from '../components/TaskProgress';
+import { useAuth } from '../contexts/AuthContext';
+import { taskService } from '../services/database';
 
 const PRIORITIES = ['High', 'Medium', 'Low'];
 const CATEGORIES = [
@@ -57,33 +59,112 @@ const STATUS_COLUMNS = {
   }
 };
 
-// Get initial tasks from localStorage or use empty array
-const initialTasks = JSON.parse(localStorage.getItem('weddingTasks')) || [];
-
 export default function TaskManager() {
-  const [tasks, setTasks] = useState(initialTasks);
+  const { user } = useAuth();
+  const [tasks, setTasks] = useState([]);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingTask, setEditingTask] = useState(null);
   const [view, setView] = useState('board');
   const [filterCategory, setFilterCategory] = useState('All');
   const [filterPriority, setFilterPriority] = useState('All');
   const [searchQuery, setSearchQuery] = useState('');
-  const [categories, setCategories] = useState(() => {
-    const savedCategories = localStorage.getItem('weddingCategories');
-    return savedCategories ? JSON.parse(savedCategories) : CATEGORIES;
-  });
+  const [categories, setCategories] = useState(CATEGORIES);
   const [isAddingCategory, setIsAddingCategory] = useState(false);
   const [newCategory, setNewCategory] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  // Save tasks to localStorage whenever they change
+  // Load tasks from Firestore
   useEffect(() => {
-    localStorage.setItem('weddingTasks', JSON.stringify(tasks));
-  }, [tasks]);
+    const loadTasks = async () => {
+      try {
+        if (user) {
+          const userTasks = await taskService.getAllTasks(user.uid);
+          setTasks(userTasks);
+        }
+      } catch (error) {
+        console.error('Error loading tasks:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  // Save categories to localStorage whenever they change
-  useEffect(() => {
-    localStorage.setItem('weddingCategories', JSON.stringify(categories));
-  }, [categories]);
+    loadTasks();
+  }, [user]);
+
+  const handleAddTask = async (taskData) => {
+    try {
+      const taskId = await taskService.upsertTask(user.uid, {
+        ...taskData,
+        status: 'todo',
+        createdAt: new Date().toISOString()
+      });
+      
+      const newTask = {
+        ...taskData,
+        id: taskId,
+        status: 'todo',
+        createdAt: new Date().toISOString()
+      };
+      
+      setTasks(prevTasks => [...prevTasks, newTask]);
+      setModalOpen(false);
+    } catch (error) {
+      console.error('Error adding task:', error);
+    }
+  };
+
+  const handleEditTask = async (taskData) => {
+    try {
+      await taskService.upsertTask(user.uid, taskData);
+      setTasks(prevTasks =>
+        prevTasks.map(task =>
+          task.id === taskData.id ? { ...task, ...taskData } : task
+        )
+      );
+      setModalOpen(false);
+      setEditingTask(null);
+    } catch (error) {
+      console.error('Error editing task:', error);
+    }
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    try {
+      await taskService.deleteTask(taskId);
+      setTasks(prevTasks => prevTasks.filter(task => task.id !== taskId));
+    } catch (error) {
+      console.error('Error deleting task:', error);
+    }
+  };
+
+  const onDragEnd = async (result) => {
+    const { source, destination, draggableId } = result;
+    
+    if (!destination) return;
+
+    if (
+      destination.droppableId === source.droppableId &&
+      destination.index === source.index
+    ) {
+      return;
+    }
+
+    try {
+      const updatedTasks = Array.from(tasks);
+      const [removed] = updatedTasks.splice(source.index, 1);
+      updatedTasks.splice(destination.index, 0, {
+        ...removed,
+        status: destination.droppableId
+      });
+
+      setTasks(updatedTasks);
+
+      // Update the task status in Firestore
+      await taskService.updateTaskStatus(draggableId, destination.droppableId);
+    } catch (error) {
+      console.error('Error updating task status:', error);
+    }
+  };
 
   const filteredTasks = tasks.filter(task => {
     const matchesSearch = task.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -92,78 +173,6 @@ export default function TaskManager() {
     const matchesPriority = filterPriority === 'All' || task.priority === filterPriority;
     return matchesSearch && matchesCategory && matchesPriority;
   });
-
-  const onDragEnd = (result) => {
-    const { source, destination, draggableId } = result;
-    
-    // Drop outside the list
-    if (!destination) {
-      return;
-    }
-
-    // No movement
-    if (
-      destination.droppableId === source.droppableId &&
-      destination.index === source.index
-    ) {
-      return;
-    }
-
-    // Find the task that was dragged
-    const taskToMove = tasks.find(task => task.id.toString() === draggableId);
-    
-    if (!taskToMove) {
-      return;
-    }
-
-    // Create new array without the dragged task
-    const newTasks = tasks.filter(task => task.id.toString() !== draggableId);
-    
-    // Update task status
-    const updatedTask = {
-      ...taskToMove,
-      status: destination.droppableId
-    };
-
-    // Insert task at new position
-    newTasks.splice(destination.index, 0, updatedTask);
-    
-    // Update state
-    setTasks(newTasks);
-  };
-
-  const handleAddTask = () => {
-    setEditingTask(null);
-    setModalOpen(true);
-  };
-
-  const handleEditTask = (task) => {
-    setEditingTask(task);
-    setModalOpen(true);
-  };
-
-  const handleSaveTask = (taskData) => {
-    if (editingTask) {
-      // Update existing task
-      setTasks(prevTasks =>
-        prevTasks.map(t =>
-          t.id === editingTask.id ? { ...taskData, id: editingTask.id } : t
-        )
-      );
-    } else {
-      // Add new task
-      const newTask = {
-        ...taskData,
-        id: Math.max(0, ...tasks.map(t => t.id)) + 1,
-      };
-      setTasks(prevTasks => [...prevTasks, newTask]);
-    }
-    setModalOpen(false);
-  };
-
-  const handleDeleteTask = (taskId) => {
-    setTasks(prevTasks => prevTasks.filter(t => t.id !== taskId));
-  };
 
   const handleAddCategory = (e) => {
     e.preventDefault();
@@ -200,7 +209,10 @@ export default function TaskManager() {
           </p>
         </div>
         <button
-          onClick={handleAddTask}
+          onClick={() => {
+            setEditingTask(null);
+            setModalOpen(true);
+          }}
           className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
         >
           <PlusIcon className="h-5 w-5 mr-2" />
@@ -451,7 +463,8 @@ export default function TaskManager() {
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleEditTask(task);
+                                    setEditingTask(task);
+                                    setModalOpen(true);
                                   }}
                                   className="flex-shrink-0 p-2.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-50 transition-colors duration-200"
                                 >
@@ -475,7 +488,10 @@ export default function TaskManager() {
       )}
 
       {view === 'timeline' && (
-        <TaskTimeline tasks={filteredTasks} onEditTask={handleEditTask} />
+        <TaskTimeline tasks={filteredTasks} onEditTask={(task) => {
+          setEditingTask(task);
+          setModalOpen(true);
+        }} />
       )}
 
       {view === 'progress' && (
@@ -486,7 +502,7 @@ export default function TaskManager() {
       <TaskModal
         isOpen={modalOpen}
         onClose={() => setModalOpen(false)}
-        onSave={handleSaveTask}
+        onSave={editingTask ? handleEditTask : handleAddTask}
         task={editingTask}
         categories={categories}
         priorities={PRIORITIES}
