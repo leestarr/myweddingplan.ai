@@ -7,6 +7,32 @@ export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuest
   const [selectedTable, setSelectedTable] = useState(null);
   const [draggedGuest, setDraggedGuest] = useState(null);
   const [localGuests, setLocalGuests] = useState(guests);
+  const [groupingOption, setGroupingOption] = useState('none');
+
+  const GROUP_OPTIONS = [
+    { id: 'none', name: 'No Grouping' },
+    { id: 'category', name: 'By Category (Bride/Groom Side)' },
+    { id: 'group', name: 'By Group (Family/Friends)' },
+    { id: 'status', name: 'By RSVP Status' }
+  ];
+
+  // Function to group guests based on selected option
+  const getGroupedGuests = (guestList) => {
+    if (groupingOption === 'none') return { 'All Guests': guestList };
+
+    return guestList.reduce((groups, guest) => {
+      const groupKey = groupingOption === 'category' ? guest.category :
+                      groupingOption === 'group' ? guest.group :
+                      groupingOption === 'status' ? guest.status :
+                      'Other';
+      
+      if (!groups[groupKey]) {
+        groups[groupKey] = [];
+      }
+      groups[groupKey].push(guest);
+      return groups;
+    }, {});
+  };
 
   // Update local guests when props change
   useEffect(() => {
@@ -17,6 +43,10 @@ export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuest
   
   const getGuestsAtTable = (tableNumber) => {
     return localGuests.filter(guest => guest.table === tableNumber);
+  };
+
+  const getUnassignedGuests = () => {
+    return localGuests.filter(guest => !guest.table);
   };
 
   const handleDragStart = (guest) => {
@@ -82,11 +112,11 @@ export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuest
               leaveFrom="opacity-100 translate-y-0 sm:scale-100"
               leaveTo="opacity-0 translate-y-4 sm:translate-y-0 sm:scale-95"
             >
-              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-6xl sm:p-6">
+              <Dialog.Panel className="relative transform overflow-hidden rounded-lg bg-white px-6 pb-6 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-7xl sm:p-6">
                 <div className="absolute right-0 top-0 pr-4 pt-4">
                   <button
                     type="button"
-                    className="rounded-md bg-white text-gray-400 hover:text-gray-500"
+                    className="rounded-md bg-white text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500"
                     onClick={onClose}
                   >
                     <span className="sr-only">Close</span>
@@ -95,80 +125,109 @@ export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuest
                 </div>
 
                 <div>
-                  <div className="mt-3 text-center sm:mt-0 sm:text-left">
-                    <Dialog.Title as="h3" className="text-lg font-semibold leading-6 text-gray-900 mb-4">
+                  <div className="mt-2 sm:mt-0 sm:text-left">
+                    <Dialog.Title as="h3" className="text-xl font-semibold leading-6 text-gray-900 mb-6">
                       Table Assignments
                     </Dialog.Title>
 
                     {/* Table Controls */}
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center space-x-4">
-                        <button
-                          onClick={handleRemoveTable}
-                          className="p-2 text-gray-400 hover:text-gray-500"
-                          disabled={numTables <= 1}
-                        >
-                          <MinusIcon className="h-5 w-5" />
-                        </button>
-                        <span className="text-sm text-gray-600">
-                          {numTables} Tables
-                        </span>
-                        <button
-                          onClick={handleAddTable}
-                          className="p-2 text-gray-400 hover:text-gray-500"
-                        >
-                          <PlusIcon className="h-5 w-5" />
-                        </button>
+                    <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-200">
+                      <div className="flex items-center gap-8">
+                        <div className="flex items-center space-x-3">
+                          <button
+                            onClick={handleRemoveTable}
+                            className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-50 rounded-full transition-colors"
+                            disabled={numTables <= 1}
+                          >
+                            <MinusIcon className="h-5 w-5" />
+                          </button>
+                          <span className="text-sm font-medium text-gray-900 min-w-[80px] text-center">
+                            {numTables} Tables
+                          </span>
+                          <button
+                            onClick={handleAddTable}
+                            className="p-2 text-gray-400 hover:text-gray-500 hover:bg-gray-50 rounded-full transition-colors"
+                          >
+                            <PlusIcon className="h-5 w-5" />
+                          </button>
+                        </div>
+
+                        <div className="flex items-center space-x-3">
+                          <label htmlFor="grouping" className="text-sm font-medium text-gray-700">
+                            Group by:
+                          </label>
+                          <select
+                            id="grouping"
+                            value={groupingOption}
+                            onChange={(e) => setGroupingOption(e.target.value)}
+                            className="block w-56 rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-primary-600 sm:text-sm sm:leading-6"
+                          >
+                            {GROUP_OPTIONS.map(option => (
+                              <option key={option.id} value={option.id}>
+                                {option.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500">
+
+                      <div className="text-sm text-gray-600 bg-gray-50 px-4 py-2 rounded-md">
                         Drag and drop guests to assign tables
                       </div>
                     </div>
 
-                    <div className="flex space-x-6">
-                      {/* Unassigned Guests */}
-                      <div className="w-64 flex-shrink-0">
-                        <div className="bg-gray-50 rounded-lg p-4">
-                          <h4 className="text-sm font-medium text-gray-900 mb-3">
-                            Unassigned Guests
-                          </h4>
-                          <div className="space-y-2">
-                            {localGuests.filter(g => !g.table).map(guest => (
-                              <div
-                                key={guest.id}
-                                draggable
-                                onDragStart={() => handleDragStart(guest)}
-                                className="bg-white p-2 rounded border border-gray-200 shadow-sm cursor-move"
-                              >
-                                <div className="text-sm font-medium text-gray-900">
-                                  {guest.firstName} {guest.lastName}
-                                </div>
-                                {guest.dietary && (
-                                  <div className="text-xs text-gray-500 mt-1">
-                                    {guest.dietary}
+                    <div className="grid grid-cols-4 gap-6">
+                      {/* Unassigned Guests Column */}
+                      <div className="bg-gray-50 p-4 rounded-lg max-h-[calc(100vh-300px)] overflow-y-auto">
+                        <h3 className="text-lg font-medium mb-4 sticky top-0 bg-gray-50 py-2">Unassigned Guests</h3>
+                        {Object.entries(getGroupedGuests(getUnassignedGuests())).map(([groupName, groupGuests]) => (
+                          <div key={groupName} className="mb-6">
+                            <h4 className="font-medium text-gray-700 mb-3 text-sm">
+                              {groupName}
+                              <span className="text-gray-500 ml-2">({groupGuests.length})</span>
+                            </h4>
+                            <div className="space-y-2">
+                              {groupGuests.map(guest => (
+                                <div
+                                  key={guest.id}
+                                  draggable
+                                  onDragStart={() => handleDragStart(guest)}
+                                  className="bg-white p-3 rounded-md shadow-sm cursor-move hover:shadow-md transition-shadow border border-gray-100"
+                                >
+                                  <div className="font-medium text-gray-900">{guest.firstName} {guest.lastName}</div>
+                                  <div className="text-sm text-gray-500 flex items-center gap-2 mt-1">
+                                    <span>{guest.category}</span>
+                                    <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                    <span>{guest.group}</span>
+                                    {guest.dietary && (
+                                      <>
+                                        <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                        <span className="text-primary-600">{guest.dietary}</span>
+                                      </>
+                                    )}
                                   </div>
-                                )}
-                              </div>
-                            ))}
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
+                        ))}
                       </div>
 
                       {/* Tables Grid */}
-                      <div className="flex-1 grid grid-cols-3 gap-4">
+                      <div className="col-span-3 grid grid-cols-3 gap-4 max-h-[calc(100vh-300px)] overflow-y-auto">
                         {tables.map((tableNumber) => {
                           const tableGuests = getGuestsAtTable(tableNumber);
                           return (
                             <div
                               key={tableNumber}
-                              className="border border-gray-200 rounded-lg p-4"
+                              className="border border-gray-200 rounded-lg p-4 bg-white hover:border-primary-100 transition-colors"
                               onDragOver={handleDragOver}
                               onDrop={() => handleDrop(tableNumber)}
                             >
-                              <div className="font-medium text-gray-900 mb-2">
-                                Table {tableNumber}
-                                <span className="text-sm text-gray-500 ml-2">
-                                  ({tableGuests.length} guests)
+                              <div className="font-medium text-gray-900 mb-3 flex items-center justify-between">
+                                <span>Table {tableNumber}</span>
+                                <span className="text-sm text-gray-500 bg-gray-50 px-2 py-1 rounded-md">
+                                  {tableGuests.length} guests
                                 </span>
                               </div>
                               <div className="space-y-2">
@@ -177,24 +236,40 @@ export default function TableAssignment({ isOpen, onClose, guests, onUpdateGuest
                                     key={guest.id}
                                     draggable
                                     onDragStart={() => handleDragStart(guest)}
-                                    className="text-sm text-gray-600 flex items-center justify-between bg-white p-2 rounded border border-gray-200 shadow-sm cursor-move"
+                                    className="text-sm bg-white p-3 rounded-md shadow-sm cursor-move hover:shadow-md transition-shadow border border-gray-100 group"
                                   >
-                                    <span>{guest.firstName} {guest.lastName}</span>
-                                    {guest.dietary && (
-                                      <span className="text-xs bg-gray-100 px-2 py-1 rounded-full">
-                                        {guest.dietary}
+                                    <div className="flex items-center justify-between">
+                                      <span className="font-medium text-gray-900">
+                                        {guest.firstName} {guest.lastName}
                                       </span>
+                                      <button
+                                        onClick={() => handleRemoveFromTable(guest)}
+                                        className="text-xs text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                      >
+                                        Remove
+                                      </button>
+                                    </div>
+                                    {(guest.dietary || guest.category || guest.group) && (
+                                      <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
+                                        {guest.category && <span>{guest.category}</span>}
+                                        {guest.group && (
+                                          <>
+                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                            <span>{guest.group}</span>
+                                          </>
+                                        )}
+                                        {guest.dietary && (
+                                          <>
+                                            <span className="w-1 h-1 bg-gray-300 rounded-full"></span>
+                                            <span className="text-primary-600">{guest.dietary}</span>
+                                          </>
+                                        )}
+                                      </div>
                                     )}
-                                    <button
-                                      onClick={() => handleRemoveFromTable(guest)}
-                                      className="text-xs text-gray-500 hover:text-gray-700"
-                                    >
-                                      Remove
-                                    </button>
                                   </div>
                                 ))}
                                 {tableGuests.length === 0 && (
-                                  <div className="text-sm text-gray-500 italic">
+                                  <div className="text-sm text-gray-400 italic text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
                                     Drop guests here
                                   </div>
                                 )}
