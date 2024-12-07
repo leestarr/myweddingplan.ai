@@ -18,6 +18,8 @@ import AnalyticsIcon from '@mui/icons-material/Analytics';
 import LightbulbIcon from '@mui/icons-material/Lightbulb';
 import ArticleIcon from '@mui/icons-material/Article';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
+import { useAuth } from '../context/AuthContext';
+import { chatService } from '../services/chatService';
 
 const genAI = new GoogleGenerativeAI("AIzaSyDhd0NRwRck8vJ9RVv_Wi-2nArMYLmetZc");
 
@@ -35,46 +37,146 @@ function AIChat() {
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef(null);
   const theme = useTheme();
+  const { user } = useAuth();
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
+  // Debug log when component mounts
+  useEffect(() => {
+    console.log('AIChat mounted, user:', user);
+  }, []);
+
+  // Test Firebase connection on mount
+  useEffect(() => {
+    const testFirebaseConnection = async () => {
+      if (user?.uid) {
+        try {
+          console.log('Testing Firebase connection with user:', {
+            email: user.email,
+            uid: user.uid
+          });
+
+          // Try to save a test message
+          const testMessage = {
+            text: 'Firebase connection test',
+            sender: 'system',
+            timestamp: new Date().toISOString()
+          };
+
+          const messageId = await chatService.saveMessage(user.uid, testMessage);
+          console.log('Successfully saved test message to Firebase:', messageId);
+        } catch (error) {
+          console.error('Firebase connection test failed:', error);
+        }
+      } else {
+        console.warn('No authenticated user found');
+      }
+    };
+
+    testFirebaseConnection();
+  }, [user]);
 
   useEffect(() => {
+    const loadChatHistory = async () => {
+      if (user?.uid) {
+        try {
+          setIsLoading(true);
+          console.log('Loading chat history for user:', user.uid);
+          const history = await chatService.getChatHistory(user.uid);
+          console.log('Loaded chat history:', history);
+          setMessages(history);
+        } catch (error) {
+          console.error('Error loading chat history:', error);
+          console.error('Error details:', {
+            code: error.code,
+            message: error.message,
+            stack: error.stack
+          });
+        } finally {
+          setIsLoading(false);
+        }
+      } else {
+        console.warn('No user ID available for chat history');
+      }
+    };
+    loadChatHistory();
+  }, [user?.uid]);
+
+  useEffect(() => {
+    const scrollToBottom = () => {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
     scrollToBottom();
   }, [messages]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim()) {
+      console.warn('Empty input, not sending');
+      return;
+    }
+    
+    if (!user?.uid) {
+      console.error('No user ID available, cannot send message');
+      return;
+    }
+
+    console.log('Sending message with user ID:', user.uid);
 
     const userMessage = {
       text: input,
-      sender: 'user'
+      sender: 'user',
+      timestamp: new Date().toISOString() // Add client-side timestamp for immediate display
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    setInput('');
-    setIsLoading(true);
-
     try {
+      // Save user message to Firebase
+      console.log('Attempting to save user message:', userMessage);
+      const messageId = await chatService.saveMessage(user.uid, userMessage);
+      console.log('Successfully saved message with ID:', messageId);
+
+      setMessages(prev => [...prev, userMessage]);
+      setInput('');
+      setIsLoading(true);
+
+      // Get AI response
       const model = genAI.getGenerativeModel({ model: "gemini-pro" });
       const result = await model.generateContent(input);
       const response = await result.response;
       const text = response.text();
 
-      setMessages(prev => [...prev, {
+      const aiMessage = {
         text: text,
-        sender: 'ai'
-      }]);
-    } catch (error) {
-      console.error('Error:', error);
-      setMessages(prev => [...prev, {
-        text: "I apologize, but I encountered an error. Please try again.",
-        sender: 'ai'
-      }]);
-    }
+        sender: 'ai',
+        timestamp: new Date().toISOString()
+      };
 
-    setIsLoading(false);
+      // Save AI response to Firebase
+      console.log('Attempting to save AI response:', aiMessage);
+      const aiMessageId = await chatService.saveMessage(user.uid, aiMessage);
+      console.log('Successfully saved AI response with ID:', aiMessageId);
+
+      setMessages(prev => [...prev, aiMessage]);
+    } catch (error) {
+      console.error('Error in chat:', error);
+      console.error('Error details:', {
+        code: error.code,
+        message: error.message,
+        stack: error.stack
+      });
+
+      const errorMessage = {
+        text: "I apologize, but I encountered an error. Please try again.",
+        sender: 'ai',
+        timestamp: new Date().toISOString()
+      };
+
+      try {
+        await chatService.saveMessage(user.uid, errorMessage);
+        setMessages(prev => [...prev, errorMessage]);
+      } catch (saveError) {
+        console.error('Failed to save error message:', saveError);
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleKeyPress = (e) => {

@@ -15,6 +15,7 @@ import Vendors from './pages/Vendors';
 import Quotes from './pages/Quotes';
 import WeddingForum from './pages/WeddingForum';
 import WeddingStore from './pages/WeddingStore';
+import TestRunner from './pages/TestRunner';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -56,6 +57,7 @@ function App() {
               <Route path="quotes" element={<Quotes />} />
               <Route path="forum" element={<WeddingForum />} />
               <Route path="store" element={<WeddingStore />} />
+              <Route path="test" element={<TestRunner />} />
               <Route path="*" element={<Navigate to="/app/dashboard" replace />} />
             </Route>
           </Routes>

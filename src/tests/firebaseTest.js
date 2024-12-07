@@ -1,4 +1,6 @@
 import { guestService, tableService, settingsService } from '../services/database';
+import { auth } from '../config/firebase';
+import { chatService } from '../services/chatService';
 
 // Test guest operations
 async function testGuestOperations() {
@@ -131,23 +133,76 @@ async function testSettingsOperations() {
     }
 }
 
+const testUserId = 'test-user-123';
+const testMessage = {
+    text: 'Hello, this is a test message',
+    sender: 'user'
+};
+
+async function testChatService() {
+    console.log('\n🔄 Testing Chat Service...');
+    
+    try {
+        // Test 1: Save Message
+        console.log('\nTest 1: Saving message...');
+        await chatService.saveMessage(testUserId, testMessage);
+        console.log('✅ Message saved successfully');
+
+        // Test 2: Get Chat History
+        console.log('\nTest 2: Getting chat history...');
+        const history = await chatService.getChatHistory(testUserId);
+        console.log(`✅ Retrieved ${history.length} messages`);
+        
+        if (history.length > 0) {
+            console.log('Latest message:', history[history.length - 1]);
+        }
+
+        // Test 3: Verify Message Order
+        console.log('\nTest 3: Verifying message order...');
+        const isOrdered = history.every((msg, i) => {
+            if (i === 0) return true;
+            return msg.timestamp >= history[i - 1].timestamp;
+        });
+        console.log(isOrdered ? '✅ Messages are properly ordered' : '❌ Message order issue detected');
+
+        return true;
+    } catch (error) {
+        console.error('❌ Chat Service Test failed:', error);
+        return false;
+    }
+}
+
 // Run all tests
 async function runAllTests() {
-    console.log('🚀 Starting Firebase integration tests...');
+    console.log('🚀 Starting Firebase integration tests...\n');
     
-    const results = {
-        guestOperations: await testGuestOperations(),
-        tableOperations: await testTableOperations(),
-        settingsOperations: await testSettingsOperations()
-    };
+    let allTestsPassed = true;
+    
+    // Test Guest Operations
+    const guestTestsPassed = await testGuestOperations();
+    allTestsPassed = allTestsPassed && guestTestsPassed;
 
+    // Test Table Operations
+    const tableTestsPassed = await testTableOperations();
+    allTestsPassed = allTestsPassed && tableTestsPassed;
+
+    // Test Settings Operations
+    const settingsTestsPassed = await testSettingsOperations();
+    allTestsPassed = allTestsPassed && settingsTestsPassed;
+
+    // Test Chat Service
+    const chatTestsPassed = await testChatService();
+    allTestsPassed = allTestsPassed && chatTestsPassed;
+    
+    // Final Results
     console.log('\n📊 Test Results:');
-    console.log('Guest Operations:', results.guestOperations ? '✅ Passed' : '❌ Failed');
-    console.log('Table Operations:', results.tableOperations ? '✅ Passed' : '❌ Failed');
-    console.log('Settings Operations:', results.settingsOperations ? '✅ Passed' : '❌ Failed');
-
-    const allPassed = Object.values(results).every(result => result === true);
-    console.log('\n🏁 Final Result:', allPassed ? '✅ All tests passed!' : '❌ Some tests failed');
+    console.log(`Guest Operations: ${guestTestsPassed ? '✅ Passed' : '❌ Failed'}`);
+    console.log(`Table Operations: ${tableTestsPassed ? '✅ Passed' : '❌ Failed'}`);
+    console.log(`Settings Operations: ${settingsTestsPassed ? '✅ Passed' : '❌ Failed'}`);
+    console.log(`Chat Service Tests: ${chatTestsPassed ? '✅ Passed' : '❌ Failed'}`);
+    console.log(`\nOverall Status: ${allTestsPassed ? '✅ ALL TESTS PASSED' : '❌ SOME TESTS FAILED'}`);
+    
+    return allTestsPassed;
 }
 
 export default runAllTests;
